@@ -13,7 +13,7 @@ def get_data(dtype, location, key, lang):
         data = requests.get(
             "https://devapi.qweather.com/v7/weather/24h?location="+location+"&key="+key+"&lang=en").text
         data = json.loads(data)
-        if data["code"] != 200:
+        if data["code"] != "200":
             return data
         rdata = {"code": "200", "hourly": []}
         j = 0
@@ -28,7 +28,7 @@ def get_data(dtype, location, key, lang):
         data = requests.get(
             "https://devapi.qweather.com/v7/weather/7d?location="+location+"&key="+key+"&lang=en").text
         data = json.loads(data)
-        if data["code"] != 200:
+        if data["code"] != "200":
             return data
         rdata = {"code": "200", "daily": []}
         j = 0
