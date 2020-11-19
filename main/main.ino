@@ -9,7 +9,7 @@
 #include <NTP.h>
 #include "fonts.h"
 
-#define VERSION "2.8 OTA"
+#define VERSION "3.0 OTA"
 
 #define WIFINAME ""
 #define WIFIPW ""
@@ -25,9 +25,11 @@ String desc = "";
 String times = "";
 String temp = "";
 String load[] = {"|", "/", "-", "\\"};
+uint32_t BG = TFT_BLACK;
+uint32_t TC = TFT_WHITE;
 WiFiUDP wifiUdp;
 NTP ntp(wifiUdp);
-int n = 0, page = 1;
+int n = 0, page = 1, reload = 0, day = 0; //day=0 night=1
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -42,8 +44,8 @@ void setup(void)
     Serial.begin(9600);
     tft.begin();
     tft.setRotation(1);
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextColor(TFT_WHITE);
+    tft.fillScreen(BG);
+    tft.setTextColor(TC);
     tft.setTextFont(2);
     tft.setTextSize(1);
     tft.println("[Chip] ESP8266EX");
@@ -59,17 +61,17 @@ void setup(void)
         for (int i = 0; i < 4; i++)
         {
             tft.setCursor(tft.width() / 2, tft.height() / 2);
-            tft.setTextColor(TFT_WHITE);
+            tft.setTextColor(TC);
             tft.print(load[i]);
             delay(250);
             tft.setCursor(tft.width() / 2, tft.height() / 2);
-            tft.setTextColor(TFT_BLACK);
+            tft.setTextColor(BG);
             tft.print(load[i]);
         }
     }
-    tft.fillScreen(TFT_BLACK);
+    tft.fillScreen(BG);
     tft.setCursor(0, 0);
-    tft.setTextColor(TFT_WHITE);
+    tft.setTextColor(TC);
     tft.println("[OTA] Setup");
     ArduinoOTA.setHostname("ESP8266");
     ArduinoOTA.begin();
@@ -81,8 +83,8 @@ void setup(void)
     delay(1000);
     tft.setTextSize(1);
     tft.setCursor(20, 20);
-    tft.fillScreen(TFT_BLACK);
-    tft.setTextColor(TFT_WHITE);
+    tft.fillScreen(BG);
+    tft.setTextColor(TC);
     tft.print(WIFINAME);
     tft.print("-");
     tft.print(WiFi.localIP());
@@ -90,21 +92,38 @@ void setup(void)
     tft.println(VERSION);
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
     tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
-    tft.drawRoundRect(295, 165, 175, 145, 10, TFT_WHITE);
-    tft.fillRoundRect(350, 50, 90, 90, 5, TFT_BLACK);
+    tft.drawRoundRect(295, 165, 175, 145, 10, TC);
+    tft.fillRoundRect(350, 50, 90, 90, 5, BG);
 }
 
 void loop()
 {
     updateTime();
+    if (reload == 1)
+    {
+        tft.setCursor(20, 20);
+        tft.fillScreen(BG);
+        tft.setTextColor(TC);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.print(WIFINAME);
+        tft.print("-");
+        tft.print(WiFi.localIP());
+        tft.print("      v");
+        tft.println(VERSION);
+        tft.drawRoundRect(295, 165, 175, 145, 10, TC);
+        tft.fillRoundRect(350, 50, 90, 90, 5, BG);
+        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+        tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
+    }
     ArduinoOTA.handle();
-    if (n == 180 || n == 0)
+    if (n == 180 || n == 0 || reload == 1)
     {
         if (n == 180)
         {
             n = 1;
         }
-        tft.fillRoundRect(300, 20, 160, 20, 0, TFT_BLACK);
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
         tft.setTextSize(1);
@@ -125,11 +144,11 @@ void loop()
                 {
                     tft.setFreeFont(FF36);
                     tft.setCursor(20, 120);
-                    tft.setTextColor(TFT_BLACK);
+                    tft.setTextColor(BG);
                     tft.print(mainw);
                     mainw = nowStatus["now"]["text"];
                     tft.setCursor(20, 120);
-                    tft.setTextColor(TFT_WHITE);
+                    tft.setTextColor(TC);
                     tft.println(mainw);
                     changeIcon(mainw);
                 }
@@ -139,11 +158,11 @@ void loop()
                 {
                     tft.setFreeFont(FF6);
                     tft.setCursor(240, 120);
-                    tft.setTextColor(TFT_BLACK);
+                    tft.setTextColor(BG);
                     tft.print(temp);
                     temp = a + "°C/" + b + "%";
                     tft.setCursor(240, 120);
-                    tft.setTextColor(TFT_WHITE);
+                    tft.setTextColor(TC);
                     tft.print(temp);
                 }
             }
@@ -167,11 +186,11 @@ void loop()
                 {
                     tft.setFreeFont(FF17);
                     tft.setCursor(20, 150);
-                    tft.setTextColor(TFT_BLACK);
+                    tft.setTextColor(BG);
                     tft.print(desc);
                     desc = a + "  AQI " + b + "  PM2.5 " + c;
                     tft.setCursor(20, 150);
-                    tft.setTextColor(TFT_WHITE);
+                    tft.setTextColor(TC);
                     tft.println(desc);
                 }
             }
@@ -180,10 +199,10 @@ void loop()
         dayStatus = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", "5000");
     }
 
-    if (n % 15 == 0)
+    if (n % 15 == 0 || reload == 1)
     {
         tft.setFreeFont(FF33);
-        tft.fillRect(10, 163, 270, 144, TFT_BLACK);
+        tft.fillRect(10, 163, 270, 144, BG);
         if (page == 0)
         {
             if (JSON.typeof(hrStatus) == "undefined")
@@ -200,7 +219,7 @@ void loop()
                     for (int i = 0; i < 7; i++)
                     {
                         tft.setCursor(20, 182 + i * 20);
-                        tft.setTextColor(TFT_WHITE);
+                        tft.setTextColor(TC);
                         tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
                         tft.setCursor(20 + 70, 182 + i * 20);
                         tft.print((const char *)hrStatus["hourly"][i]["text"]);
@@ -226,7 +245,7 @@ void loop()
                     for (int i = 0; i < 7; i++)
                     {
                         tft.setCursor(20, 182 + i * 20);
-                        tft.setTextColor(TFT_WHITE);
+                        tft.setTextColor(TC);
                         tft.print((const char *)dayStatus["daily"][i]["fxDate"]);
                         tft.setCursor(20 + 70, 182 + i * 20);
                         tft.print((const char *)dayStatus["daily"][i]["text"]);
@@ -237,6 +256,7 @@ void loop()
             }
         }
     }
+    reload = 0;
     n++;
     delay(1000);
 }
@@ -245,6 +265,17 @@ void updateTime()
 {
     ntp.update();
     String newT = ntp.formattedTime("%Y-%m-%d %H:%M:%S");
+    if (n % 120 == 0)
+    {
+        String a = ntp.formattedTime("%H");
+        if (((a[0] == '1' && a[1] >= '8') || a[0] >= '2' || (a[0] == '0' && a[1] <= '6')) && day == 0)
+        {
+            //BG = TFT_WHITE;
+            //TC = TFT_BLACK;
+            day = 1;
+            //reload = 1;
+        }
+    }
     tft.setFreeFont(FF6);
     tft.setCursor(20, 60);
     for (int i = 0; i < 19; i++)
@@ -252,15 +283,15 @@ void updateTime()
         if (times[i] != newT[i])
         {
             int x = tft.getCursorX();
-            tft.setTextColor(TFT_BLACK);
+            tft.setTextColor(BG);
             tft.print(times[i]);
             tft.setCursor(x, 60);
-            tft.setTextColor(TFT_WHITE);
+            tft.setTextColor(TC);
             tft.print(newT[i]);
         }
         else
         {
-            tft.setTextColor(TFT_WHITE);
+            tft.setTextColor(TC);
             tft.print(times[i]);
         }
     }
@@ -269,30 +300,30 @@ void updateTime()
 
 void changeIcon(String newI)
 {
-    tft.fillRoundRect(350, 50, 90, 90, 5, TFT_BLACK);
-    tft.drawRoundRect(350, 50, 90, 90, 5, TFT_BLACK);
+    tft.fillRoundRect(350, 50, 90, 90, 5, BG);
+    tft.drawRoundRect(350, 50, 90, 90, 5, BG);
     if (newI == "Overcast")
     {
         tft.drawRoundRect(350, 50, 90, 90, 5, TFT_GREEN);
-        tft.drawFastHLine(360, 120, 70, TFT_WHITE);
-        tft.drawFastHLine(360, 110, 70, TFT_WHITE);
-        tft.drawFastHLine(360, 100, 70, TFT_WHITE);
-        tft.drawFastHLine(360, 90, 70, TFT_WHITE);
-        tft.drawFastHLine(360, 80, 70, TFT_WHITE);
-        tft.drawFastHLine(360, 70, 70, TFT_WHITE);
+        tft.drawFastHLine(360, 120, 70, TC);
+        tft.drawFastHLine(360, 110, 70, TC);
+        tft.drawFastHLine(360, 100, 70, TC);
+        tft.drawFastHLine(360, 90, 70, TC);
+        tft.drawFastHLine(360, 80, 70, TC);
+        tft.drawFastHLine(360, 70, 70, TC);
     }
     if (newI == "Light Rain")
     {
-        tft.fillCircle(395, 77, 17, TFT_WHITE);
-        tft.fillCircle(375, 92, 13, TFT_WHITE);
-        tft.drawCircle(375, 92, 14, TFT_BLACK);
-        tft.drawCircle(375, 92, 15, TFT_BLACK);
-        tft.fillCircle(415, 94, 11, TFT_WHITE);
-        tft.fillRect(379, 90, 36, 16, TFT_WHITE);
+        tft.fillCircle(395, 77, 17, TC);
+        tft.fillCircle(375, 92, 13, TC);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TC);
+        tft.fillRect(379, 90, 36, 16, TC);
         tft.drawLine(397, 111, 392, 131, TFT_BLUE);
         tft.drawLine(398, 111, 393, 131, TFT_BLUE);
     }
-    if (newI == "Clear" || newI == "Sunny")
+    if ((newI == "Clear" || newI == "Sunny") && day == 0)
     {
         tft.fillCircle(395, 95, 20, 0xFD20);
         tft.fillCircle(395, 65, 4, 0xFD20);
@@ -304,15 +335,31 @@ void changeIcon(String newI)
         tft.fillCircle(374, 116, 4, 0xFD20);
         tft.fillCircle(416, 116, 4, 0xFD20);
     }
-    if (newI == "Cloudy")
+    if ((newI == "Clear" || newI == "Sunny") && day == 1)
+    {
+        tft.fillCircle(395, 90, 30, TFT_WHITE);
+        tft.fillCircle(380, 80, 24, TFT_BLACK);
+    }
+
+    if (newI == "Cloudy" && day == 0)
     {
         tft.fillCircle(415, 80, 13, 0xFD20);
-        tft.fillCircle(395, 77, 17, TFT_WHITE);
-        tft.fillCircle(375, 92, 13, TFT_WHITE);
-        tft.drawCircle(375, 92, 14, TFT_BLACK);
-        tft.drawCircle(375, 92, 15, TFT_BLACK);
-        tft.fillCircle(415, 94, 11, TFT_WHITE);
-        tft.fillRect(379, 90, 36, 16, TFT_WHITE);
+        tft.fillCircle(395, 77, 17, TC);
+        tft.fillCircle(375, 92, 13, TC);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TC);
+        tft.fillRect(379, 90, 36, 16, TC);
+    }
+    if (newI == "Cloudy" && day == 1)
+    {
+        tft.fillCircle(415, 80, 13, TFT_WHITE);
+        tft.fillCircle(395, 77, 17, 0x6B4D);
+        tft.fillCircle(375, 92, 13, 0x6B4D);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, 0x6B4D);
+        tft.fillRect(379, 90, 36, 16, 0x6B4D);
     }
 }
 
