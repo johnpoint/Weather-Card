@@ -10,7 +10,7 @@
 #include "fonts.h"
 #include "config.h"
 
-#define VERSION "3.1 OTA"
+#define VERSION "3.3 OTA"
 
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
@@ -30,7 +30,8 @@ JSONVar dayStatus;
 void updateTime();
 void changeIcon(String newI);
 JSONVar httpsCom(String host, String path, int port);
-JSONVar httpCom(String host, String path, String port);
+JSONVar httpCom(String host, String path);
+void showInfo();
 
 void setup(void)
 {
@@ -72,21 +73,9 @@ void setup(void)
     tft.print(NTPADDRESS);
     ntp.ntpServer(NTPADDRESS);
     ntp.begin();
-    ntp.timeZone(8);
+    ntp.timeZone(TIMEZONE);
     delay(1000);
-    tft.setTextSize(1);
-    tft.setCursor(20, 20);
-    tft.fillScreen(BG);
-    tft.setTextColor(TC);
-    tft.print(WIFINAME);
-    tft.print("-");
-    tft.print(WiFi.localIP());
-    tft.print("      v");
-    tft.println(VERSION);
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-    tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
-    tft.drawRoundRect(295, 165, 175, 145, 10, TC);
-    tft.fillRoundRect(350, 50, 90, 90, 5, BG);
+    showInfo();
 }
 
 void loop()
@@ -94,25 +83,12 @@ void loop()
     updateTime();
     if (reload == 1)
     {
-        tft.setCursor(20, 20);
-        tft.fillScreen(BG);
-        tft.setTextColor(TC);
-        tft.setTextFont(2);
-        tft.setTextSize(1);
-        tft.print(WIFINAME);
-        tft.print("-");
-        tft.print(WiFi.localIP());
-        tft.print("      v");
-        tft.println(VERSION);
-        tft.drawRoundRect(295, 165, 175, 145, 10, TC);
-        tft.fillRoundRect(350, 50, 90, 90, 5, BG);
-        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-        tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
+        showInfo();
     }
     ArduinoOTA.handle();
-    if (n == 180 || n == 0 || reload == 1)
+    if (n == 300 || n == 0 || reload == 1)
     {
-        if (n == 180)
+        if (n == 300)
         {
             n = 1;
         }
@@ -160,7 +136,7 @@ void loop()
                 }
             }
         }
-
+        JSONVar StatusNew;
         JSONVar airStatus = httpsCom("devapi.qweather.com", "/v7/air/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
         if (JSON.typeof(airStatus) == "undefined")
         {
@@ -168,6 +144,45 @@ void loop()
         }
         else
         {
+            String warn = "";
+            uint32_t WC = TFT_WHITE; // wearning color
+            StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en");
+            if (JSON.typeof(StatusNew) == "undefined")
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            }
+            else
+            {
+                const char *aa = StatusNew["code"];
+                String a = aa;
+                if (a == "200")
+                {
+                    const char *tn = StatusNew["warning"]["typeName"];
+                    const char *level = StatusNew["warning"]["level"];
+                    warn = tn;
+                    String typeLevel = level;
+                    if (level == "White")
+                    {
+                        WC = TFT_WHITE;
+                    }
+                    else if (level == "Yellow")
+                    {
+                        WC = TFT_YELLOW;
+                    }
+                    else if (level == "Blue")
+                    {
+                        WC = TFT_BLUE;
+                    }
+                    else if (level == "Red")
+                    {
+                        WC = TFT_RED;
+                    }
+                    else if (level == "Orange")
+                    {
+                        WC = TFT_ORANGE;
+                    }
+                }
+            }
             const char *aa = airStatus["code"];
             String a = aa;
             if (a == "200")
@@ -175,21 +190,50 @@ void loop()
                 a = airStatus["now"]["category"];
                 b = airStatus["now"]["aqi"];
                 c = airStatus["now"]["pm2p5"];
-                if (a + "  AQI " + b + "  PM2.5 " + c != desc)
+                if (desc != a + "  AQI " + b + "  PM2.5 " + c + warn)
                 {
+                    tft.fillRect(18, 135, 330, 22, BG);
                     tft.setFreeFont(FF17);
-                    tft.setCursor(20, 150);
-                    tft.setTextColor(BG);
-                    tft.print(desc);
                     desc = a + "  AQI " + b + "  PM2.5 " + c;
                     tft.setCursor(20, 150);
                     tft.setTextColor(TC);
-                    tft.println(desc);
+                    tft.print(desc);
+                    tft.setTextColor(WC);
+                    tft.print("   ");
+                    tft.print(warn);
+                    desc = desc + warn;
                 }
             }
         }
-        hrStatus = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", "5000");
-        dayStatus = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", "5000");
+
+        StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en");
+        if (JSON.typeof(StatusNew) == "undefined")
+        {
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+        }
+        else
+        {
+            const char *aa = StatusNew["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                hrStatus = StatusNew;
+            }
+        }
+        StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en");
+        if (JSON.typeof(StatusNew) == "undefined")
+        {
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+        }
+        else
+        {
+            const char *aa = StatusNew["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                dayStatus = StatusNew;
+            }
+        }
     }
 
     if (n % 15 == 0 || reload == 1)
@@ -207,7 +251,7 @@ void loop()
                 String a = aa;
                 if (a == "200")
                 {
-                    tft.fillRect(10, 163, 270, 144, BG);
+                    tft.fillRect(10, 163, 275, 144, BG);
                     page = 1;
                     for (int i = 0; i < 7; i++)
                     {
@@ -234,7 +278,7 @@ void loop()
                 String a = aa;
                 if (a == "200")
                 {
-                    tft.fillRect(10, 163, 270, 144, BG);
+                    tft.fillRect(10, 163, 275, 144, BG);
                     page = 0;
                     for (int i = 0; i < 7; i++)
                     {
@@ -255,6 +299,25 @@ void loop()
     delay(1000);
 }
 
+void showInfo()
+{
+    tft.setCursor(20, 20);
+    tft.fillScreen(BG);
+    tft.setTextColor(TC);
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.print("[");
+    tft.print(WIFINAME);
+    tft.print("]");
+    tft.print(WiFi.localIP());
+    tft.print("      v");
+    tft.println(VERSION);
+    tft.drawRoundRect(295, 165, 175, 145, 10, TC);
+    tft.fillRoundRect(350, 50, 90, 90, 5, BG);
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
+}
+
 void updateTime()
 {
     ntp.update();
@@ -267,11 +330,12 @@ void updateTime()
             //BG = TFT_WHITE;
             //TC = TFT_BLACK;
             day = 1;
-            //reload = 1;
+            tft.drawRoundRect(10, 80, 460, 80, 10, TFT_BLUE);
         }
-        else
+        else if (((a[0] == '0' && a[1] > '6') || (a[0] == '1' && a[1] < '8')) && day == 1)
         {
             day = 0;
+            tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
         }
     }
     tft.setFreeFont(FF6);
@@ -419,13 +483,14 @@ JSONVar httpsCom(String host, String path, int port)
     return data;
 }
 
-JSONVar httpCom(String host, String path, String port)
+JSONVar httpCom(String host, String path)
 {
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
     HTTPClient http;
     WiFiClient client;
     JSONVar data;
-    if (http.begin(client, "http://" + host + ":" + port + path))
+
+    if (http.begin(client, "http://" + host + path))
     {
         int httpCode = http.GET();
         if (httpCode > 0)
