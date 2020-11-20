@@ -13,3 +13,31 @@
 |ESP8266HTTPClient||
 |WiFiUdp||
 |NTP|https://github.com/sstaub/NTP|
+
+# Configuration 配置
+
+## Firmware 固件
+
+edit `config.example.h`
+
+```C++
+#define WIFINAME "" // WIFI SSID
+#define WIFIPW ""   // WIFI PASSWORD
+#define NTPADDRESS "pool.ntp.org"
+
+const String APIKEY = ""; // https://dev.qweather.com/docs/start/get-api-key
+const String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
+const String PROXYAPI = ""; // See README
+``` 
+
+```
+mv config.example.h config.h
+```
+
+## API-proxy API 代理
+
+```bash
+cd apiporxy
+pip install -r requirements.txt
+flask run -h 0.0.0.0 # for development
+```

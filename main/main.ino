@@ -8,16 +8,9 @@
 #include <WiFiUdp.h>
 #include <NTP.h>
 #include "fonts.h"
+#include "config.h"
 
 #define VERSION "3.1 OTA"
-
-#define WIFINAME ""
-#define WIFIPW ""
-#define NTPADDRESS "pool.ntp.org"
-
-const String APIKEY = "";   // https://dev.qweather.com/docs/start/get-api-key
-const String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
-const String PROXYAPI = ""; // See README
 
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
