@@ -9,7 +9,7 @@
 #include <NTP.h>
 #include "fonts.h"
 
-#define VERSION "3.0 OTA"
+#define VERSION "3.1 OTA"
 
 #define WIFINAME ""
 #define WIFIPW ""
@@ -202,7 +202,6 @@ void loop()
     if (n % 15 == 0 || reload == 1)
     {
         tft.setFreeFont(FF33);
-        tft.fillRect(10, 163, 270, 144, BG);
         if (page == 0)
         {
             if (JSON.typeof(hrStatus) == "undefined")
@@ -215,6 +214,7 @@ void loop()
                 String a = aa;
                 if (a == "200")
                 {
+                    tft.fillRect(10, 163, 270, 144, BG);
                     page = 1;
                     for (int i = 0; i < 7; i++)
                     {
@@ -241,6 +241,7 @@ void loop()
                 String a = aa;
                 if (a == "200")
                 {
+                    tft.fillRect(10, 163, 270, 144, BG);
                     page = 0;
                     for (int i = 0; i < 7; i++)
                     {
@@ -274,6 +275,10 @@ void updateTime()
             //TC = TFT_BLACK;
             day = 1;
             //reload = 1;
+        }
+        else
+        {
+            day = 0;
         }
     }
     tft.setFreeFont(FF6);
@@ -375,6 +380,10 @@ JSONVar httpsCom(String host, String path, int port)
     int r = 0;
     while ((!httpsClient.connect(host, port)) && (r < 30))
     {
+        if (r % 10 == 0)
+        {
+            updateTime();
+        }
         delay(100);
         r++;
     }
