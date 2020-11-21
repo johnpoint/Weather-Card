@@ -97,7 +97,7 @@ void loop()
         tft.setTextFont(2);
         tft.setTextSize(1);
         tft.println(times);
-        String a, b, c;
+        String a, b, c, d;
         JSONVar nowStatus = httpsCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
         if (JSON.typeof(nowStatus) == "undefined")
         {
@@ -190,18 +190,39 @@ void loop()
                 a = airStatus["now"]["category"];
                 b = airStatus["now"]["aqi"];
                 c = airStatus["now"]["pm2p5"];
-                if (desc != a + "  AQI " + b + "  PM2.5 " + c + warn)
+                d = airStatus["now"]["pm10"];
+                if (desc != a + b + c + d + warn)
                 {
-                    tft.fillRect(18, 135, 330, 22, BG);
+                    tft.fillRect(18, 135, 380, 22, BG);
                     tft.setFreeFont(FF17);
-                    desc = a + "  AQI " + b + "  PM2.5 " + c;
+                    desc = a + b + c + warn;
                     tft.setCursor(20, 150);
                     tft.setTextColor(TC);
-                    tft.print(desc);
-                    tft.setTextColor(WC);
+                    tft.print(a);
                     tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("AQI");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(b);
+                    tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("PM2.5");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(c);
+                    tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("PM10");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(d);
+                    tft.setTextColor(WC);
+                    tft.print("    ");
                     tft.print(warn);
-                    desc = desc + warn;
                 }
             }
         }
@@ -308,7 +329,7 @@ void showInfo()
     tft.setTextSize(1);
     tft.print("[");
     tft.print(WIFINAME);
-    tft.print("]");
+    tft.print("]  ");
     tft.print(WiFi.localIP());
     tft.print("      v");
     tft.println(VERSION);
@@ -364,15 +385,24 @@ void changeIcon(String newI)
 {
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
     tft.drawRoundRect(350, 50, 90, 90, 5, BG);
-    if (newI == "Overcast")
+    if (newI == "Overcast" && day == 0)
     {
-        tft.drawRoundRect(350, 50, 90, 90, 5, TFT_GREEN);
-        tft.drawFastHLine(360, 120, 70, TC);
-        tft.drawFastHLine(360, 110, 70, TC);
-        tft.drawFastHLine(360, 100, 70, TC);
-        tft.drawFastHLine(360, 90, 70, TC);
-        tft.drawFastHLine(360, 80, 70, TC);
-        tft.drawFastHLine(360, 70, 70, TC);
+        tft.fillCircle(415, 80, 13, 0xFD20);
+        tft.fillCircle(395, 77, 17, TFT_WHITE);
+        tft.fillCircle(375, 92, 13, TFT_WHITE);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TFT_WHITE);
+        tft.fillRect(379, 90, 36, 16, TFT_WHITE);
+    }
+    if (newI == "Overcast" && day == 1){
+        tft.fillCircle(415, 80, 13, TFT_WHITE);
+        tft.fillCircle(395, 77, 17, 0x6B4D);
+        tft.fillCircle(375, 92, 13, 0x6B4D);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, 0x6B4D);
+        tft.fillRect(379, 90, 36, 16, 0x6B4D);
     }
     if (newI == "Light Rain")
     {
@@ -402,26 +432,37 @@ void changeIcon(String newI)
         tft.fillCircle(395, 90, 30, TFT_WHITE);
         tft.fillCircle(380, 80, 24, TFT_BLACK);
     }
-
     if (newI == "Cloudy" && day == 0)
     {
-        tft.fillCircle(415, 80, 13, 0xFD20);
-        tft.fillCircle(395, 77, 17, TC);
-        tft.fillCircle(375, 92, 13, TC);
-        tft.drawCircle(375, 92, 14, BG);
-        tft.drawCircle(375, 92, 15, BG);
-        tft.fillCircle(415, 94, 11, TC);
-        tft.fillRect(379, 90, 36, 16, TC);
+        tft.fillCircle(410, 75, 10, TC);
+        tft.fillCircle(395, 82, 8, TC);
+        tft.fillCircle(422, 82, 6, TC);
+        tft.fillRect(398, 80, 25, 10, TC);
+
+        tft.fillCircle(385, 92, 15, TC);
+        tft.drawCircle(385, 92, 16, BG);
+        tft.drawCircle(385, 92, 17, BG);
+        tft.fillCircle(365, 102, 12, TC);
+        tft.drawCircle(365, 102, 13, BG);
+        tft.drawCircle(365, 102, 14, BG);
+        tft.fillCircle(400, 104, 10, TC);
+        tft.fillRect(368, 100, 30, 15, TC);
     }
     if (newI == "Cloudy" && day == 1)
     {
-        tft.fillCircle(415, 80, 13, TFT_WHITE);
-        tft.fillCircle(395, 77, 17, 0x6B4D);
-        tft.fillCircle(375, 92, 13, 0x6B4D);
-        tft.drawCircle(375, 92, 14, BG);
-        tft.drawCircle(375, 92, 15, BG);
-        tft.fillCircle(415, 94, 11, 0x6B4D);
-        tft.fillRect(379, 90, 36, 16, 0x6B4D);
+        tft.fillCircle(410, 75, 10, 0x6B4D);
+        tft.fillCircle(395, 82, 8, 0x6B4D);
+        tft.fillCircle(422, 82, 6, 0x6B4D);
+        tft.fillRect(398, 80, 25, 10, 0x6B4D);
+
+        tft.fillCircle(385, 92, 15, 0x6B4D);
+        tft.drawCircle(385, 92, 16, BG);
+        tft.drawCircle(385, 92, 17, BG);
+        tft.fillCircle(365, 102, 12, 0x6B4D);
+        tft.drawCircle(365, 102, 13, BG);
+        tft.drawCircle(365, 102, 14, BG);
+        tft.fillCircle(400, 104, 10, 0x6B4D);
+        tft.fillRect(368, 100, 30, 15, 0x6B4D);
     }
 }
 
