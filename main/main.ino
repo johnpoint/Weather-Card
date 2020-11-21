@@ -10,7 +10,7 @@
 #include "fonts.h"
 #include "config.h"
 
-#define VERSION "3.3 OTA"
+#define VERSION "3.4 OTA"
 
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
@@ -393,7 +393,7 @@ void changeIcon(String newI)
         tft.drawCircle(375, 92, 14, BG);
         tft.drawCircle(375, 92, 15, BG);
         tft.fillCircle(415, 94, 11, TFT_WHITE);
-        tft.fillRect(379, 90, 36, 16, TFT_WHITE);
+        tft.fillRect(375, 90, 39, 16, TFT_WHITE);
     }
     if (newI == "Overcast" && day == 1){
         tft.fillCircle(415, 80, 13, TFT_WHITE);
@@ -402,7 +402,7 @@ void changeIcon(String newI)
         tft.drawCircle(375, 92, 14, BG);
         tft.drawCircle(375, 92, 15, BG);
         tft.fillCircle(415, 94, 11, 0x6B4D);
-        tft.fillRect(379, 90, 36, 16, 0x6B4D);
+        tft.fillRect(375, 90, 39, 16, 0x6B4D);
     }
     if (newI == "Light Rain")
     {
