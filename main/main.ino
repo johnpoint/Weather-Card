@@ -7,17 +7,33 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
 #include <NTP.h>
+#include "FS.h"
+#include <LittleFS.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
 #include "fonts.h"
-#include "config.h"
 
-#define VERSION "3.4 OTA"
+#ifndef APSSID
+#define APSSID "ESPAP"
+#define APPSK "12345678"
+#endif
+
+#define VERSION "4.0 OTA"
+
+#define NTPADDRESS "ntp.aliyun.com"
+#define TIMEZONE 8
+
+String APIKEY = "";   // https://dev.qweather.com/docs/start/get-api-key
+String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
+String PROXYAPI = "";
+String ssid = APSSID;
+String password = APPSK;
 
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
 String desc = "";
 String times = "";
 String temp = "";
-String load[] = {"|", "/", "-", "\\"};
 uint32_t BG = TFT_BLACK;
 uint32_t TC = TFT_WHITE;
 WiFiUDP wifiUdp;
@@ -26,12 +42,9 @@ int n = 0, page = 1, reload = 0, day = 0; //day=0 night=1
 
 JSONVar hrStatus;
 JSONVar dayStatus;
+JSONVar config;
 
-void updateTime();
-void changeIcon(String newI);
-JSONVar httpsCom(String host, String path, int port);
-JSONVar httpCom(String host, String path);
-void showInfo();
+ESP8266WebServer server(80);
 
 void setup(void)
 {
@@ -46,47 +59,42 @@ void setup(void)
     tft.println("[Screen] ST8896S");
     tft.print("[Firmware] v");
     tft.println(VERSION);
-    WiFi.begin(WIFINAME, WIFIPW);
-    tft.print("[WIFI] Connecting to ");
-    tft.println(WIFINAME);
-    while (WiFi.status() != WL_CONNECTED)
+    tft.println("[LittleFS] Mounting FS...");
+    if (!LittleFS.begin())
     {
-
-        for (int i = 0; i < 4; i++)
+        tft.println("[LittleFS] Failed to mount file system");
+        while (1)
         {
-            tft.setCursor(tft.width() / 2, tft.height() / 2);
-            tft.setTextColor(TC);
-            tft.print(load[i]);
-            delay(250);
-            tft.setCursor(tft.width() / 2, tft.height() / 2);
-            tft.setTextColor(BG);
-            tft.print(load[i]);
+            delay(0);
         }
     }
-    tft.fillScreen(BG);
-    tft.setCursor(0, 0);
-    tft.setTextColor(TC);
-    tft.println("[OTA] Setup");
+    wificonfig();
+    server.on("/", handleRoot);
+    server.on("/config", handlewifi);
+    server.begin();
+    tft.println("[Web Config] HTTP server started");
     ArduinoOTA.setHostname("ESP8266");
     ArduinoOTA.begin();
-    tft.print("[NTP] Begin -> ");
-    tft.print(NTPADDRESS);
-    ntp.ntpServer(NTPADDRESS);
-    ntp.begin();
-    ntp.timeZone(TIMEZONE);
-    delay(1000);
     showInfo();
 }
 
 void loop()
 {
-    updateTime();
-    if (reload == 1)
-    {
-        showInfo();
-    }
     ArduinoOTA.handle();
-    if (n == 300 || n == 0 || reload == 1)
+    server.handleClient();
+    if (reload == 2)
+    {
+        n = 0;
+        day = 0;
+        ntp.stop();
+        showInfo();
+        desc = "";
+        mainw = "";
+        times = "";
+        temp = "";
+    }
+    updateTime();
+    if (n == 300 || n == 0 || reload >= 1)
     {
         if (n == 300)
         {
@@ -98,6 +106,7 @@ void loop()
         tft.setTextSize(1);
         tft.println(times);
         String a, b, c, d;
+        ESP.wdtFeed();
         JSONVar nowStatus = httpsCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
         if (JSON.typeof(nowStatus) == "undefined")
         {
@@ -136,6 +145,7 @@ void loop()
                 }
             }
         }
+        ESP.wdtFeed();
         JSONVar StatusNew;
         JSONVar airStatus = httpsCom("devapi.qweather.com", "/v7/air/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
         if (JSON.typeof(airStatus) == "undefined")
@@ -226,7 +236,7 @@ void loop()
                 }
             }
         }
-
+        ESP.wdtFeed();
         StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en");
         if (JSON.typeof(StatusNew) == "undefined")
         {
@@ -241,6 +251,7 @@ void loop()
                 hrStatus = StatusNew;
             }
         }
+        ESP.wdtFeed();
         StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en");
         if (JSON.typeof(StatusNew) == "undefined")
         {
@@ -320,15 +331,166 @@ void loop()
     delay(1000);
 }
 
+int wififlag = 1;
+
+void conntionWIFI()
+{
+    WiFi.disconnect();
+    wififlag = 1;
+    WiFi.begin(config["ssid"], config["pass"]);
+    tft.print("[WIFI] Connecting to ");
+    tft.println(config["ssid"]);
+    int t = 0;
+    while (WiFi.status() != WL_CONNECTED && t <= 30)
+    {
+
+        for (int i = 0; i < 4; i++)
+        {
+            tft.print(".");
+            delay(250);
+        }
+        t++;
+    }
+    tft.println(".");
+    if (WiFi.status() == WL_CONNECTED)
+    {
+        wififlag = 0;
+    }
+}
+
+void handleRoot()
+{
+    server.send(200, "text/html", "<h1>HI,ESP8266</h1>");
+}
+
+void handlewifi()
+{
+    if (server.method() != HTTP_POST)
+    {
+        server.send(405, "text/plain", "Method Not Allowed");
+    }
+    else
+    {
+        tft.fillScreen(BG);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.setCursor(0, 0);
+        server.send(200, "text/plain", "OK");
+        File configFile = LittleFS.open("/config.json", "w");
+        if (!configFile)
+        {
+            tft.println("[Config] Failed to open config file for writing");
+            reload = 1;
+        }
+        else
+        {
+            configFile.print(server.arg("plain"));
+            configFile.close();
+            if (!Loadconfig())
+            {
+                server.stop();
+                wificonfig();
+            }
+        }
+    }
+}
+
+bool Loadconfig()
+{
+    File configFile = LittleFS.open("/config.json", "r");
+    if (!configFile)
+    {
+        tft.println("[Config] Failed to open config file");
+        return false;
+    }
+    tft.println("[Config] Parsing config.json...");
+    size_t size = configFile.size();
+    if (size > 1024)
+    {
+        tft.println("[Config] Config file size is too large");
+        return false;
+    }
+    std::unique_ptr<char[]> buf(new char[size]);
+    configFile.readBytes(buf.get(), size);
+    config = JSON.parse(buf.get());
+    if (config["ssid"] == null || config["pass"] == null ||
+        config["key"] == null || config["location"] == null ||
+        config["proxy"] == null)
+    {
+        tft.println(config);
+        return false;
+    }
+    APIKEY = config["key"];
+    LOCATION = config["location"];
+    PROXYAPI = config["proxy"];
+    if (config["hssid"] != null && config["hssid"] != "")
+    {
+        ssid = config["hssid"];
+    }
+    if (config["hpass"] != null && config["hpass"] != "")
+    {
+        password = config["hpass"];
+    }
+    conntionWIFI();
+    if (wififlag == 0)
+    {
+        reload = 2;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void wificonfig()
+{
+    if (Loadconfig())
+    {
+        return;
+    }
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.println("[AcessPoint] Configuring access point...");
+    WiFi.softAP(ssid, password);
+
+    IPAddress myIP = WiFi.softAPIP();
+    tft.print("[AcessPoint] SSID: ");
+    tft.println(ssid);
+    tft.print("[AcessPoint] Password: ");
+    tft.println(password);
+    tft.print("[AcessPoint] AP IP address: ");
+    tft.println(myIP);
+    server.on("/", handleRoot);
+    server.on("/config", handlewifi);
+    server.begin();
+    tft.println("[WebConfig] HTTP server started");
+    while (wififlag)
+    {
+        server.handleClient();
+    }
+    server.close();
+    WiFi.softAPdisconnect();
+}
+
 void showInfo()
 {
-    tft.setCursor(20, 20);
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.println("[OTA] Start");
+    tft.print("[NTP] Begin -> ");
+    tft.println(NTPADDRESS);
+    ntp.ntpServer(NTPADDRESS);
+    ntp.begin();
+    ntp.timeZone(TIMEZONE);
+    delay(1000);
     tft.fillScreen(BG);
+    tft.setCursor(20, 20);
     tft.setTextColor(TC);
     tft.setTextFont(2);
     tft.setTextSize(1);
     tft.print("[");
-    tft.print(WIFINAME);
+    tft.print((const char *)config["ssid"]);
     tft.print("]  ");
     tft.print(WiFi.localIP());
     tft.print("      v");
@@ -352,11 +514,13 @@ void updateTime()
             //TC = TFT_BLACK;
             day = 1;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_BLUE);
+            reload = 1;
         }
         else if (((a[0] == '0' && a[1] > '6') || (a[0] == '1' && a[1] < '8')) && day == 1)
         {
             day = 0;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
+            reload = 1;
         }
     }
     tft.setFreeFont(FF6);
@@ -395,7 +559,8 @@ void changeIcon(String newI)
         tft.fillCircle(415, 94, 11, TFT_WHITE);
         tft.fillRect(375, 90, 39, 16, TFT_WHITE);
     }
-    if (newI == "Overcast" && day == 1){
+    if (newI == "Overcast" && day == 1)
+    {
         tft.fillCircle(415, 80, 13, TFT_WHITE);
         tft.fillCircle(395, 77, 17, 0x6B4D);
         tft.fillCircle(375, 92, 13, 0x6B4D);
@@ -432,7 +597,7 @@ void changeIcon(String newI)
         tft.fillCircle(395, 90, 30, TFT_WHITE);
         tft.fillCircle(380, 80, 24, TFT_BLACK);
     }
-    if (newI == "Cloudy" && day == 0)
+    if (newI == "Cloudy")
     {
         tft.fillCircle(410, 75, 10, TC);
         tft.fillCircle(395, 82, 8, TC);
@@ -448,22 +613,6 @@ void changeIcon(String newI)
         tft.fillCircle(400, 104, 10, TC);
         tft.fillRect(368, 100, 30, 15, TC);
     }
-    if (newI == "Cloudy" && day == 1)
-    {
-        tft.fillCircle(410, 75, 10, 0x6B4D);
-        tft.fillCircle(395, 82, 8, 0x6B4D);
-        tft.fillCircle(422, 82, 6, 0x6B4D);
-        tft.fillRect(398, 80, 25, 10, 0x6B4D);
-
-        tft.fillCircle(385, 92, 15, 0x6B4D);
-        tft.drawCircle(385, 92, 16, BG);
-        tft.drawCircle(385, 92, 17, BG);
-        tft.fillCircle(365, 102, 12, 0x6B4D);
-        tft.drawCircle(365, 102, 13, BG);
-        tft.drawCircle(365, 102, 14, BG);
-        tft.fillCircle(400, 104, 10, 0x6B4D);
-        tft.fillRect(368, 100, 30, 15, 0x6B4D);
-    }
 }
 
 JSONVar httpsCom(String host, String path, int port)
@@ -474,7 +623,6 @@ JSONVar httpsCom(String host, String path, int port)
     httpsClient.setInsecure();
     httpsClient.setCiphersLessSecure();
     httpsClient.setTimeout(15000);
-    delay(500);
     int r = 0;
     while ((!httpsClient.connect(host, port)) && (r < 30))
     {
@@ -498,9 +646,7 @@ JSONVar httpsCom(String host, String path, int port)
     String payload = "";
     while (httpsClient.connected())
     {
-        delay(0);
         String line = httpsClient.readStringUntil('\n');
-        Serial.print(line);
         if (line == "\r")
         {
             flag = 1;
