@@ -72,7 +72,7 @@
                 <div class="card blue-grey darken-1">
                     <div class="card-content white-text">
                         <span class="card-title">Config</span>
-                        <textarea id="getdata" style="height: 70px;color: white;"></textarea>
+                        <div id="getdata" style="color: white;"></div>
                     </div>
                 </div>
             </div>
@@ -89,8 +89,8 @@
             url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "GET",
             success: function (data) {
-                $("#getdata")[0].value = data;
                 data = JSON.parse(data);
+                $("#getdata")[0].innerText = JSON.stringify(data, " ", 4);
                 $("#ssid")[0].value = data["ssid"];
                 $("#wifipass")[0].value = data["pass"];
                 $("#apikey")[0].value = data["key"];
