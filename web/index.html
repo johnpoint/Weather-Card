@@ -7,53 +7,124 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="Cache-Control" content="no-siteapp">
     <title>Weather Config Web Editor</title>
-    <link type="text/css" href="main.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
 </head>
 
 <body>
-    <h1>Weather Card Configuration</h1>
-    <p>IP address:<input id="ipaddress" /></p>
-    <p>Card Password:<input id="cardpass" /></p>
-    <p>WIFI SSID:<input id="ssid" /></p>
-    <p>WIFI Password:<input id="wifipass" /></p>
-    <p>API Key:<input id="apikey" /></p>
-    <p>API Proxy:<input id="apiproxy" /></p>
-    <p>Location:<input id="location" /></p>
-    <p>AP SSID:<input id="aps" /></p>
-    <p>AP Password:<input id="app" /></p>
-    <button id="getconfig">GET</button> <button id="pushconfig">PUSH</button><br />
-    <code id="getdata"></code>
+    <div class="container">
+        <div class="row">
+            <div class="col s12">
+                <h1>Weather Card Configuration</h1>
+            </div>
+            <div class="col s12">
+                <p class="in err">请求失败,检查密码是否正确</p>
+                <p class="in succ">OK</p>
+            </div>
+            <div class="input-field col s6">
+                <input id="ipaddress" class="validate" type="text">
+                <label for="ipaddress">IP address</label>
+            </div>
+            <div class="input-field col s6">
+                <input id="cardpass" type="password" class="validate">
+                <label for="cardpass">Card Password</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="newcardpass" type="password" class="validate">
+                <label for="newcardpass">New Card Password</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="ssid" class="validate" type="text">
+                <label for="ssid">WIFI SSID</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="wifipass" class="validate" type="password">
+                <label for="wifipass">WIFI Password</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="aps" class="validate" type="text">
+                <label for="aps">AP SSID</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="app" class="validate" type="password">
+                <label for="app">AP Password</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="apikey" class="validate" type="text">
+                <label for="apikey">API Key</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="apiproxy" class="validate" type="text">
+                <label for="apiproxy">API Proxy</label>
+            </div>
+            <div class="input-field col s6 info">
+                <input id="location" class="validate" type="text">
+                <label for="location">Location</label>
+            </div>
+            <div class="col s12">
+                <center>
+                    <button id="getconfig" class="btn waves-effect waves-light">GET</button>
+                    <button id="pushconfig" class="btn waves-effect waves-light info">PUSH</button>
+                </center>
+            </div>
+            <div class="col s12 info">
+                <div class="card blue-grey darken-1">
+                    <div class="card-content white-text">
+                        <span class="card-title">Config</span>
+                        <textarea id="getdata" style="height: 70px;color: white;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 <script>
+    $(".info").hide();
+    $(".in").hide();
     $("#getconfig").click(function () {
         $("#getconfig")[0].disabled = true;
+        $(".in").hide();
         $.ajax({
-            url: "http://" + $("#ipaddress")[0].value + "/config",
+            url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "GET",
             success: function (data) {
-                $("#getdata")[0].innerText = data;
+                $("#getdata")[0].value = data;
                 data = JSON.parse(data);
                 $("#ssid")[0].value = data["ssid"];
                 $("#wifipass")[0].value = data["pass"];
                 $("#apikey")[0].value = data["key"];
+                $("#cardpass")[0].value = data["password"];
+                $("#newcardpass")[0].value = data["password"];
                 $("#apiproxy")[0].value = data["proxy"];
                 $("#location")[0].value = data["location"];
+                $("#aps")[0].value = data["hssid"];
+                $("#app")[0].value = data["hpass"];
                 $("#getconfig")[0].disabled = false
+                $(".info").show();
+                $(".succ").show();
             },
             error: function (data) {
+                $(".err").show();
                 $("#getconfig")[0].disabled = false
             }
         })
     })
 
     $("#pushconfig").click(function () {
+        $(".in").hide();
         $("#pushconfig")[0].disabled = true;
-        data = { "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value }
+        data = { "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value, "password": $("#newcardpass")[0].value }
         $.ajax({
-            url: "http://" + $("#ipaddress")[0].value + "/config",
+            url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "POST",
-            data: JSON.stringify(data)
+            data: JSON.stringify(data),
+            success: function () {
+                $(".succ").show();
+            },
+            error: function () {
+                $(".err").show();
+            }
         })
         $("#pushconfig")[0].disabled = false
     })

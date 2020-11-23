@@ -28,6 +28,7 @@ String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
 String PROXYAPI = "";
 String ssid = APSSID;
 String password = APPSK;
+String configPass = "123456";
 
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
@@ -85,7 +86,7 @@ void setup(void)
     ArduinoOTA.begin();
     showInfo();
     server.on("/", handleRoot);
-    server.on("/config", handlewifi);
+    server.on("/config/" + configPass, handlewifi);
     server.begin();
 }
 
@@ -457,6 +458,14 @@ bool Loadconfig()
     {
         password = config["hpass"];
     }
+    if (config["hpass"] != null && config["hpass"] != "")
+    {
+        password = config["hpass"];
+    }
+    if (config["password"] != null && config["password"] != "")
+    {
+        configPass = config["password"];
+    }
     return true;
 }
 
@@ -484,7 +493,7 @@ void wificonfig(bool pass)
     tft.print("[AcessPoint] AP IP address: ");
     tft.println(myIP);
     server.on("/", handleRoot);
-    server.on("/config", handlewifi);
+    server.on("/config/" + configPass, handlewifi);
     server.begin();
     tft.println("[WebConfig] HTTP server started");
     while (wififlag)
@@ -494,7 +503,7 @@ void wificonfig(bool pass)
     server.close();
     WiFi.softAPdisconnect();
     server.on("/", handleRoot);
-    server.on("/config", handlewifi);
+    server.on("/config/" + configPass, handlewifi);
     server.begin();
 }
 
