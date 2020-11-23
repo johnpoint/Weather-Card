@@ -18,22 +18,6 @@
 
 ## Firmware 固件
 
-edit `config.example.h`
-
-```C++
-#define WIFINAME "" // WIFI SSID
-#define WIFIPW ""   // WIFI PASSWORD
-#define NTPADDRESS "pool.ntp.org"
-
-const String APIKEY = ""; // https://dev.qweather.com/docs/start/get-api-key
-const String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
-const String PROXYAPI = ""; // See README
-``` 
-
-```
-mv config.example.h config.h
-```
-
 ## API-proxy API 代理
 
 ```bash
