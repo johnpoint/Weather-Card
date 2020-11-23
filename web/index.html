@@ -26,7 +26,7 @@
                 <input id="ipaddress" class="validate" type="text">
                 <label for="ipaddress">IP address</label>
             </div>
-            <div class="input-field col s6">
+            <div class="input-field col s6 info2">
                 <input id="cardpass" type="password" class="validate">
                 <label for="cardpass">Card Password</label>
             </div>
@@ -103,6 +103,7 @@
                 $("#getconfig")[0].disabled = false
                 $(".info").show();
                 $(".succ").show();
+                $(".info2").hide();
             },
             error: function (data) {
                 $(".err").show();
