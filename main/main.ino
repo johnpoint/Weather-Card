@@ -535,17 +535,17 @@ void updateTime()
         String a = ntp.formattedTime("%H");
         if (((a[0] == '1' && a[1] >= '8') || a[0] >= '2' || (a[0] == '0' && a[1] <= '6')) && day == 0)
         {
-            //BG = TFT_WHITE;
-            //TC = TFT_BLACK;
             day = 1;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_BLUE);
             reload = 1;
+            mainw = "";
         }
         else if (((a[0] == '0' && a[1] > '6') || (a[0] == '1' && a[1] < '8')) && day == 1)
         {
             day = 0;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
             reload = 1;
+            mainw = "";
         }
     }
     tft.setFreeFont(FF6);

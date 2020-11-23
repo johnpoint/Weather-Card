@@ -1,0 +1,62 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="Cache-Control" content="no-siteapp">
+    <title>Weather Config Web Editor</title>
+    <link type="text/css" href="main.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js"></script>
+</head>
+
+<body>
+    <h1>Weather Card Configuration</h1>
+    <p>IP address:<input id="ipaddress" /></p>
+    <p>Card Password:<input id="cardpass" /></p>
+    <p>WIFI SSID:<input id="ssid" /></p>
+    <p>WIFI Password:<input id="wifipass" /></p>
+    <p>API Key:<input id="apikey" /></p>
+    <p>API Proxy:<input id="apiproxy" /></p>
+    <p>Location:<input id="location" /></p>
+    <p>AP SSID:<input id="aps" /></p>
+    <p>AP Password:<input id="app" /></p>
+    <button id="getconfig">GET</button> <button id="pushconfig">PUSH</button><br />
+    <code id="getdata"></code>
+</body>
+<script>
+    $("#getconfig").click(function () {
+        $("#getconfig")[0].disabled = true;
+        $.ajax({
+            url: "http://" + $("#ipaddress")[0].value + "/config",
+            method: "GET",
+            success: function (data) {
+                $("#getdata")[0].innerText = data;
+                data = JSON.parse(data);
+                $("#ssid")[0].value = data["ssid"];
+                $("#wifipass")[0].value = data["pass"];
+                $("#apikey")[0].value = data["key"];
+                $("#apiproxy")[0].value = data["proxy"];
+                $("#location")[0].value = data["location"];
+                $("#getconfig")[0].disabled = false
+            },
+            error: function (data) {
+                $("#getconfig")[0].disabled = false
+            }
+        })
+    })
+
+    $("#pushconfig").click(function () {
+        $("#pushconfig")[0].disabled = true;
+        data = { "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value }
+        $.ajax({
+            url: "http://" + $("#ipaddress")[0].value + "/config",
+            method: "POST",
+            data: JSON.stringify(data)
+        })
+        $("#pushconfig")[0].disabled = false
+    })
+</script>
+
+</html>
