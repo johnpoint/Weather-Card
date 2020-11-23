@@ -46,6 +46,17 @@ JSONVar config;
 
 ESP8266WebServer server(80);
 
+void conntionWIFI();
+void handleRoot();
+void handlewifi();
+bool Loadconfig();
+void wificonfig(bool pass);
+void showInfo();
+void updateTime();
+void changeIcon(String newI);
+JSONVar httpCom(String host, String path);
+JSONVar httpsCom(String host, String path, int port);
+
 void setup(void)
 {
     Serial.begin(9600);
@@ -68,14 +79,14 @@ void setup(void)
             delay(0);
         }
     }
-    wificonfig();
-    server.on("/", handleRoot);
-    server.on("/config", handlewifi);
-    server.begin();
+    wificonfig(false);
     tft.println("[Web Config] HTTP server started");
     ArduinoOTA.setHostname("ESP8266");
     ArduinoOTA.begin();
     showInfo();
+    server.on("/", handleRoot);
+    server.on("/config", handlewifi);
+    server.begin();
 }
 
 void loop()
@@ -365,11 +376,17 @@ void handleRoot()
 
 void handlewifi()
 {
-    if (server.method() != HTTP_POST)
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
+    delay(500);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Max-Age", "10000");
+    server.sendHeader("Access-Control-Allow-Methods", "PUT,POST,GET,OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "*");
+    if (server.method() == HTTP_GET)
     {
-        server.send(405, "text/plain", "Method Not Allowed");
+        server.send(200, "text/plain", JSON.stringify(config));
     }
-    else
+    else if (server.method() == HTTP_POST)
     {
         tft.fillScreen(BG);
         tft.setTextFont(2);
@@ -385,14 +402,23 @@ void handlewifi()
         else
         {
             configFile.print(server.arg("plain"));
-            configFile.close();
-            if (!Loadconfig())
+        }
+        configFile.close();
+        if (Loadconfig())
+        {
+            conntionWIFI();
+            if (wififlag == 0)
             {
-                server.stop();
-                wificonfig();
+                reload = 2;
+            }
+            else
+            {
+                server.close();
+                wificonfig(true);
             }
         }
     }
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
 bool Loadconfig()
@@ -431,23 +457,19 @@ bool Loadconfig()
     {
         password = config["hpass"];
     }
-    conntionWIFI();
-    if (wififlag == 0)
-    {
-        reload = 2;
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return true;
 }
 
-void wificonfig()
+void wificonfig(bool pass)
 {
-    if (Loadconfig())
+    if (Loadconfig() && !pass)
     {
-        return;
+        conntionWIFI();
+        if (wififlag == 0)
+        {
+            reload = 2;
+            return;
+        }
     }
     tft.setTextFont(2);
     tft.setTextSize(1);
@@ -471,6 +493,9 @@ void wificonfig()
     }
     server.close();
     WiFi.softAPdisconnect();
+    server.on("/", handleRoot);
+    server.on("/config", handlewifi);
+    server.begin();
 }
 
 void showInfo()
@@ -548,7 +573,6 @@ void updateTime()
 void changeIcon(String newI)
 {
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
-    tft.drawRoundRect(350, 50, 90, 90, 5, BG);
     if (newI == "Overcast" && day == 0)
     {
         tft.fillCircle(415, 80, 13, 0xFD20);
