@@ -31,35 +31,35 @@
                 <label for="cardpass">Card Password</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="newcardpass" type="password" class="validate">
+                <input id="newcardpass" placeholder="" type="password" class="validate">
                 <label for="newcardpass">New Card Password</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="ssid" class="validate" type="text">
+                <input id="ssid" placeholder="" class="validate" type="text">
                 <label for="ssid">WIFI SSID</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="wifipass" class="validate" type="password">
+                <input id="wifipass" placeholder="" class="validate" type="password">
                 <label for="wifipass">WIFI Password</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="aps" class="validate" type="text">
+                <input id="aps" placeholder="" class="validate" type="text">
                 <label for="aps">AP SSID</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="app" class="validate" type="password">
+                <input id="app" placeholder="" class="validate" type="password">
                 <label for="app">AP Password</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="apiproxy" class="validate" type="text">
+                <input id="apiproxy" placeholder="" class="validate" type="text">
                 <label for="apiproxy">API Proxy</label>
             </div>
             <div class="input-field col s6 info">
-                <input id="location" class="validate" type="text">
+                <input id="location" placeholder="" class="validate" type="text">
                 <label for="location">Location</label>
             </div>
             <div class="input-field col s12 info">
-                <input id="apikey" class="validate" type="text">
+                <input id="apikey" placeholder="" class="validate" type="text">
                 <label for="apikey">API Key</label>
             </div>
             <div class="col s12">
@@ -82,6 +82,9 @@
 <script>
     $(".info").hide();
     $(".in").hide();
+    if (window.localStorage.getItem("ip") !== null) {
+        $("#ipaddress")[0].value = window.localStorage.getItem("ip");
+    }
     $("#getconfig").click(function () {
         $("#getconfig")[0].disabled = true;
         $(".in").hide();
@@ -90,6 +93,7 @@
             method: "GET",
             success: function (data) {
                 data = JSON.parse(data);
+                window.localStorage.setItem("ip", $("#ipaddress")[0].value);
                 $("#getdata")[0].innerText = JSON.stringify(data, " ", 4);
                 $("#ssid")[0].value = data["ssid"];
                 $("#wifipass")[0].value = data["pass"];

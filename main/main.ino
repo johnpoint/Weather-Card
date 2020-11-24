@@ -14,7 +14,7 @@
 #include "fonts.h"
 
 #ifndef APSSID
-#define APSSID "ESPAP"
+#define APSSID "NodeMCU"
 #define APPSK "12345678"
 #endif
 
@@ -215,7 +215,7 @@ void loop()
                 d = airStatus["now"]["pm10"];
                 if (desc != a + b + c + d + warn)
                 {
-                    tft.fillRect(18, 135, 380, 22, BG);
+                    tft.fillRoundRect(16, 135, 450, 22, 5, BG);
                     tft.setFreeFont(FF17);
                     desc = a + b + c + warn;
                     tft.setCursor(20, 150);
