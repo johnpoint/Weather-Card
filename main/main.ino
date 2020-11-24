@@ -18,7 +18,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "4.0 OTA"
+#define VERSION "4.7 OTA"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
@@ -106,12 +106,8 @@ void loop()
         temp = "";
     }
     updateTime();
-    if (n == 300 || n == 0 || reload >= 1)
+    if (n % 300 == 0 || reload >= 1)
     {
-        if (n == 300)
-        {
-            n = 1;
-        }
         tft.fillRoundRect(300, 20, 160, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
@@ -177,7 +173,7 @@ void loop()
             {
                 const char *aa = StatusNew["code"];
                 String a = aa;
-                if (a == "200")
+                if (a == "200" && StatusNew["warning"]["typeName"] != null)
                 {
                     const char *tn = StatusNew["warning"]["typeName"];
                     const char *level = StatusNew["warning"]["level"];
@@ -287,7 +283,7 @@ void loop()
         {
             if (JSON.typeof(hrStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                tft.drawRoundRect(5, 5, 475, 310, 10, TFT_RED);
             }
             else
             {
@@ -314,7 +310,7 @@ void loop()
         {
             if (JSON.typeof(dayStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                tft.drawRoundRect(5, 5, 475, 310, 10, TFT_RED);
             }
             else
             {
@@ -529,7 +525,7 @@ void showInfo()
     tft.print(WiFi.localIP());
     tft.print("      v");
     tft.println(VERSION);
-    tft.drawRoundRect(295, 165, 175, 145, 10, TC);
+    tft.drawCircle(385, 237, 70, TFT_YELLOW);
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
     tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
@@ -539,8 +535,12 @@ void updateTime()
 {
     ntp.update();
     String newT = ntp.formattedTime("%Y-%m-%d %H:%M:%S");
-    if (n % 120 == 0)
+    if (n % 60 == 0)
     {
+        if (n == 360)
+        {
+            n = 0;
+        }
         String a = ntp.formattedTime("%H");
         if (((a[0] == '1' && a[1] >= '8') || a[0] >= '2' || (a[0] == '0' && a[1] <= '6')) && day == 0)
         {
@@ -555,6 +555,126 @@ void updateTime()
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
             reload = 1;
             mainw = "";
+        }
+        tft.fillCircle(385, 237, 70, BG);
+        tft.drawLine(315, 237, 455, 237, TFT_WHITE);
+        tft.drawLine(385, 167, 385, 307, TFT_WHITE);
+        tft.drawCircle(385, 237, 70, TFT_ORANGE);
+        a = ntp.formattedTime("%H");
+        if (a[0] == '0' && a[1] >= '0' && a[1] < '6')
+        {
+            tft.fillCircle(385, 202, 35, TFT_ORANGE);
+        }
+        else if ((a[0] == '0' && a[1] >= '6') || (a[0] == '1' && a[1] < '2'))
+        {
+            tft.fillCircle(420, 237, 35, TFT_ORANGE);
+        }
+        else if (a[0] == '1' && a[1] >= '2' && a[1] < '8')
+        {
+            tft.fillCircle(385, 272, 35, TFT_ORANGE);
+        }
+        else
+        {
+            tft.fillCircle(350, 237, 35, TFT_ORANGE);
+        }
+        a = ntp.formattedTime("%M");
+        if (a[0] == '0' || (a[0] == '1' && a[1] < '5'))
+        {
+            tft.fillCircle(385, 219, 18, BG);
+            tft.drawCircle(385, 219, 18, TFT_ORANGE);
+        }
+        else if ((a[0] == '1' && a[1] >= '5') || a[0] == '2')
+        {
+            tft.fillCircle(403, 237, 18, BG);
+            tft.drawCircle(403, 237, 18, TFT_ORANGE);
+        }
+        else if (a[0] == '3' || (a[0] == '4' && a[1] < '5'))
+        {
+            tft.fillCircle(385, 255, 18, BG);
+            tft.drawCircle(385, 255, 18, TFT_ORANGE);
+        }
+        else
+        {
+            tft.fillCircle(367, 237, 18, BG);
+            tft.drawCircle(367, 237, 18, TFT_ORANGE);
+        }
+        a = ntp.formattedTime("%a");
+        if (a == "Mon")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Tue")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Wed")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 212, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 212, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Thu")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 212, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 212, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 232, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 232, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Fri")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 212, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 212, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 232, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 232, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 252, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 252, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Sat")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 212, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 212, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 232, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 232, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 252, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 252, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 272, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 272, 30, 10, 5, TFT_WHITE);
+        }
+        if (a == "Sun")
+        {
+            tft.fillRoundRect(400, 172, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 172, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 192, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 192, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 212, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 212, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 232, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 232, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 252, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 252, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 272, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 272, 30, 10, 5, TFT_WHITE);
+            tft.fillRoundRect(400, 292, 30, 10, 5, BG);
+            tft.drawRoundRect(400, 292, 30, 10, 5, TFT_WHITE);
         }
     }
     tft.setFreeFont(FF6);
