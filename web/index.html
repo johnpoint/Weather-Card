@@ -19,8 +19,9 @@
                 <h1>Weather Card Configuration</h1>
             </div>
             <div class="col s12">
-                <p class="in err">请求失败,检查密码是否正确</p>
-                <p class="in succ">OK</p>
+                Status: <span class="in err" style="color: red;">Request failed</span>
+                <span class="in succ" style="color: green;">OK</span>
+                <span class="in wait">Wait...</span>
             </div>
             <div class="input-field col s6">
                 <input id="ipaddress" class="validate" type="text">
@@ -88,9 +89,11 @@
     $("#getconfig").click(function () {
         $("#getconfig")[0].disabled = true;
         $(".in").hide();
+        $(".wait").show();
         $.ajax({
             url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "GET",
+            timeout: 3000,
             success: function (data) {
                 data = JSON.parse(data);
                 window.localStorage.setItem("ip", $("#ipaddress")[0].value);
@@ -106,10 +109,12 @@
                 $("#app")[0].value = data["hpass"];
                 $("#getconfig")[0].disabled = false
                 $(".info").show();
+                $(".in").hide();
                 $(".succ").show();
                 $(".info2").hide();
             },
             error: function (data) {
+                $(".in").hide();
                 $(".err").show();
                 $("#getconfig")[0].disabled = false
             }
@@ -118,16 +123,20 @@
 
     $("#pushconfig").click(function () {
         $(".in").hide();
+        $(".wait").show();
         $("#pushconfig")[0].disabled = true;
         data = { "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value, "password": $("#newcardpass")[0].value }
         $.ajax({
             url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "POST",
             data: JSON.stringify(data),
+            timeout: 3000,
             success: function () {
+                $(".in").hide();
                 $(".succ").show();
             },
             error: function () {
+                $(".in").hide();
                 $(".err").show();
             }
         })
