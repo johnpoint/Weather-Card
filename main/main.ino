@@ -1,18 +1,25 @@
-#include <TFT_eSPI.h>
-#include <SPI.h>
+#include <TFT_eSPI.h> // https://github.com/Bodmer/TFT_eSPI
+#include <SPI.h> // https://www.arduino.cc/en/Reference/SPI
+#include <Arduino_JSON.h> // https://github.com/arduino-libraries/Arduino_JSON
+
+// https://github.com/sstaub/NTP
+#include <WiFiUdp.h>
+#include <NTP.h> 
+ // https://github.com/adafruit/Adafruit_SGP30
+#include "Adafruit_SGP30.h"
+#include <Wire.h>
+
+#include <ArduinoOTA.h> // https://github.com/jandrassy/ArduinoOTA
+// https://github.com/esp8266/Arduino
 #include <ESP8266WiFi.h>
-#include <ArduinoOTA.h>
-#include <Arduino_JSON.h>
 #include <ESP8266WiFiMulti.h>
 #include <ESP8266HTTPClient.h>
-#include <WiFiUdp.h>
-#include <NTP.h>
+
 #include "FS.h"
 #include <LittleFS.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include <Wire.h>
-#include "Adafruit_SGP30.h"
+
 #include "fonts.h"
 
 #ifndef APSSID
@@ -106,6 +113,7 @@ void loop()
 {
     ArduinoOTA.handle();
     server.handleClient();
+    updateTime();
     if (reload == 2)
     {
         n = 0;
@@ -117,7 +125,6 @@ void loop()
         times = "";
         temp = "";
     }
-    updateTime();
     if (n % 300 == 0 || reload >= 1)
     {
         tft.fillRoundRect(300, 20, 160, 20, 0, BG);
