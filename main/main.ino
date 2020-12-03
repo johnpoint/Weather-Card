@@ -1,11 +1,11 @@
-#include <TFT_eSPI.h> // https://github.com/Bodmer/TFT_eSPI
-#include <SPI.h> // https://www.arduino.cc/en/Reference/SPI
+#include <TFT_eSPI.h>     // https://github.com/Bodmer/TFT_eSPI
+#include <SPI.h>          // https://www.arduino.cc/en/Reference/SPI
 #include <Arduino_JSON.h> // https://github.com/arduino-libraries/Arduino_JSON
 
 // https://github.com/sstaub/NTP
 #include <WiFiUdp.h>
-#include <NTP.h> 
- // https://github.com/adafruit/Adafruit_SGP30
+#include <NTP.h>
+// https://github.com/adafruit/Adafruit_SGP30
 #include "Adafruit_SGP30.h"
 #include <Wire.h>
 
@@ -303,26 +303,55 @@ void loop()
         }
         else
         {
-            tft.drawRoundRect(300, 167, 170, 140, 10, TFT_WHITE);
+            tft.drawRoundRect(300, 167, 170, 140, 10, BG);
+            tft.drawFastVLine(300, 170, 135, TFT_WHITE);
             if (sgp.TVOC != tvoc)
             {
-                tft.setCursor(320, 190);
+                tft.setCursor(320, 220);
                 tft.setFreeFont(FF17);
                 tft.println("TVOC");
                 tft.setCursor(320, tft.getCursorY() + 10);
                 tft.setFreeFont(FF6);
-                tft.fillRect(315, 200, 50, 30, BG);
+                tft.fillRect(315, 230, 75, 30, BG);
+                if (sgp.TVOC > 40 && sgp.TVOC <= 80)
+                {
+                    tft.setTextColor(TFT_YELLOW);
+                }
+                else if (sgp.TVOC > 80)
+                {
+                    tft.setTextColor(TFT_RED);
+                }
+                else
+                {
+                    tft.setTextColor(TFT_GREEN);
+                }
                 tft.print(sgp.TVOC);
+                tft.setTextColor(TC);
+                tvoc = sgp.TVOC;
             }
             if (sgp.eCO2 != eco2)
             {
-                tft.setCursor(400, 190);
+                tft.setCursor(400, 220);
                 tft.setFreeFont(FF17);
                 tft.println("CO2");
                 tft.setCursor(400, tft.getCursorY() + 10);
                 tft.setFreeFont(FF6);
-                tft.fillRect(395, 200, 50, 30, BG);
+                tft.fillRect(395, 230, 75, 30, BG);
+                if (sgp.eCO2 > 800 && sgp.eCO2 <= 1000)
+                {
+                    tft.setTextColor(TFT_YELLOW);
+                }
+                else if (sgp.eCO2 > 1000)
+                {
+                    tft.setTextColor(TFT_RED);
+                }
+                else
+                {
+                    tft.setTextColor(TFT_GREEN);
+                }
                 tft.print(sgp.eCO2);
+                tft.setTextColor(TC);
+                eco2 = sgp.eCO2;
             }
         }
     }
@@ -334,7 +363,7 @@ void loop()
         {
             if (JSON.typeof(hrStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 475, 310, 10, TFT_RED);
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
             }
             else
             {
@@ -361,7 +390,7 @@ void loop()
         {
             if (JSON.typeof(dayStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 475, 310, 10, TFT_RED);
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
             }
             else
             {
