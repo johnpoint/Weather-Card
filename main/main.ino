@@ -198,23 +198,23 @@ void loop()
                     const char *level = StatusNew["warning"]["level"];
                     warn = tn;
                     String typeLevel = level;
-                    if (level == "White")
+                    if (typeLevel == "White")
                     {
                         WC = TFT_WHITE;
                     }
-                    else if (level == "Yellow")
+                    else if (typeLevel == "Yellow")
                     {
                         WC = TFT_YELLOW;
                     }
-                    else if (level == "Blue")
+                    else if (typeLevel == "Blue")
                     {
                         WC = TFT_BLUE;
                     }
-                    else if (level == "Red")
+                    else if (typeLevel == "Red")
                     {
                         WC = TFT_RED;
                     }
-                    else if (level == "Orange")
+                    else if (typeLevel == "Orange")
                     {
                         WC = TFT_ORANGE;
                     }
