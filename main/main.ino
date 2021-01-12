@@ -27,7 +27,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "5.0 OTA"
+#define VERSION "5.5 OTA"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
@@ -38,11 +38,12 @@ String PROXYAPI = "";
 String ssid = APSSID;
 String password = APPSK;
 String configPass = "123456";
-
+time_t nowTime;
 TFT_eSPI tft = TFT_eSPI();
 String mainw = "";
 String desc = "";
 String times = "";
+int timeZone = 8;
 String temp = "";
 uint32_t BG = TFT_BLACK;
 uint32_t TC = TFT_WHITE;
@@ -50,6 +51,7 @@ WiFiUDP wifiUdp;
 NTP ntp(wifiUdp);
 int n = 0, page = 1, reload = 0, day = 0; //day=0 night=1
 uint16_t tvoc = 1, eco2 = 1;
+int mode = 0, sgpmode = 0; //0 offline 1 online
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -65,6 +67,7 @@ void wificonfig(bool pass);
 void showInfo();
 void updateTime();
 void changeIcon(String newI);
+void offline();
 JSONVar httpCom(String host, String path);
 JSONVar httpsCom(String host, String path, int port);
 
@@ -94,11 +97,16 @@ void setup(void)
     {
         tft.println("[Sensor] SGP30 not found :(");
     }
-    tft.println("[Sensor] SGP30");
-    tft.print("Found SGP30 serial #");
-    tft.print(sgp.serialnumber[0], HEX);
-    tft.print(sgp.serialnumber[1], HEX);
-    tft.println(sgp.serialnumber[2], HEX);
+    else
+    {
+        sgpmode = 1;
+        tft.println("[Sensor] SGP30");
+        tft.print("Found SGP30 serial #");
+        tft.print(sgp.serialnumber[0], HEX);
+        tft.print(sgp.serialnumber[1], HEX);
+        tft.println(sgp.serialnumber[2], HEX);
+    }
+
     wificonfig(false);
     tft.println("[Web Config] HTTP server started");
     ArduinoOTA.setHostname("ESP8266");
@@ -127,6 +135,7 @@ void loop()
     }
     if (n % 300 == 0 || reload >= 1)
     {
+        ntp.update();
         tft.fillRoundRect(300, 20, 160, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
@@ -545,6 +554,66 @@ bool Loadconfig()
     return true;
 }
 
+void offline()
+{
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    if (!sgp.IAQmeasure())
+    {
+        tft.drawRoundRect(300, 167, 170, 140, 10, TFT_RED);
+    }
+    else
+    {
+        if (sgp.TVOC != tvoc)
+        {
+            tft.setCursor(192, 150);
+            tft.setFreeFont(FF17);
+            tft.println("TVOC");
+            tft.setCursor(192, tft.getCursorY() + 10);
+            tft.setFreeFont(FF6);
+            tft.fillRect(187, 160, 75, 30, BG);
+            if (sgp.TVOC > 40 && sgp.TVOC <= 80)
+            {
+                tft.setTextColor(TFT_YELLOW);
+            }
+            else if (sgp.TVOC > 80)
+            {
+                tft.setTextColor(TFT_RED);
+            }
+            else
+            {
+                tft.setTextColor(TFT_GREEN);
+            }
+            tft.print(sgp.TVOC);
+            tft.setTextColor(TC);
+            tvoc = sgp.TVOC;
+        }
+        if (sgp.eCO2 != eco2)
+        {
+            tft.setCursor(288, 150);
+            tft.setFreeFont(FF17);
+            tft.println("CO2");
+            tft.setCursor(288, tft.getCursorY() + 10);
+            tft.setFreeFont(FF6);
+            tft.fillRect(283, 160, 75, 30, BG);
+            if (sgp.eCO2 > 800 && sgp.eCO2 <= 1000)
+            {
+                tft.setTextColor(TFT_YELLOW);
+            }
+            else if (sgp.eCO2 > 1000)
+            {
+                tft.setTextColor(TFT_RED);
+            }
+            else
+            {
+                tft.setTextColor(TFT_GREEN);
+            }
+            tft.print(sgp.eCO2);
+            tft.setTextColor(TC);
+            eco2 = sgp.eCO2;
+        }
+    }
+}
+
 void wificonfig(bool pass)
 {
     if (Loadconfig() && !pass)
@@ -572,9 +641,29 @@ void wificonfig(bool pass)
     server.on("/config/" + configPass, handlewifi);
     server.begin();
     tft.println("[WebConfig] HTTP server started");
+    delay(1000);
+    tft.fillScreen(BG);
+    tft.setCursor(20, 20);
+    tft.setTextColor(TC);
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.print("[");
+    tft.print(ssid);
+    tft.print("]  ");
+    tft.print(myIP);
+    tft.print("(");
+    tft.print(password);
+    tft.print(")");
+    tft.print("      v");
+    tft.println(VERSION);
     while (wififlag)
     {
         server.handleClient();
+        if (sgpmode == 1)
+        {
+            offline();
+        }
+        delay(1000);
     }
     server.close();
     WiFi.softAPdisconnect();
@@ -613,8 +702,12 @@ void showInfo()
 
 void updateTime()
 {
-    ntp.update();
-    String newT = ntp.formattedTime("%Y-%m-%d %H:%M:%S");
+    nowTime = ntp.epoch() + (timeZone * 60 * 60);
+    struct tm *ptr;
+    ptr = localtime(&nowTime);
+    char newT[80];
+    strftime(newT, 100, "%F %T", ptr);
+    //String newT = ntp.formattedTime();
     if (n % 60 == 0)
     {
         if (n == 360)
@@ -739,10 +832,6 @@ JSONVar httpsCom(String host, String path, int port)
     int r = 0;
     while ((!httpsClient.connect(host, port)) && (r < 30))
     {
-        if (r % 10 == 0)
-        {
-            updateTime();
-        }
         delay(100);
         r++;
     }
