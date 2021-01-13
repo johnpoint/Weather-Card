@@ -67,7 +67,10 @@
                 <center>
                     <button id="getconfig" class="btn waves-effect waves-light">GET</button>
                     <button id="pushconfig" class="btn waves-effect waves-light info">PUSH</button>
+                    <button id="pushTime" class="btn waves-effect waves-light">PUSH TIME</button>
                 </center>
+            </div>
+            <div class="col s2 info">
             </div>
             <div class="col s12 info">
                 <div class="card blue-grey darken-1">
@@ -86,6 +89,28 @@
     if (window.localStorage.getItem("ip") !== null) {
         $("#ipaddress")[0].value = window.localStorage.getItem("ip");
     }
+    $("#pushTime").click(function () {
+        $(".in").hide();
+        $("#pushTime")[0].disabled = true
+        $(".wait").show();
+        $.ajax({
+            url: "http://" + $("#ipaddress")[0].value + "/time/" + $("#cardpass")[0].value,
+            method: "POST",
+            contentType: "text/plain",
+            data: (new Date().getTime() / 1000).toFixed(0),
+            timeout: 3000,
+            success: function (data) {
+                $(".in").hide();
+                $(".succ").show();
+                $(".info2").hide();
+            },
+            error: function (data) {
+                $(".in").hide();
+                $(".err").show();
+                $("#pushTime")[0].disabled = false
+            }
+        })
+    })
     $("#getconfig").click(function () {
         $("#getconfig")[0].disabled = true;
         $(".in").hide();

@@ -32,26 +32,27 @@
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
 
-String APIKEY = "";   // https://dev.qweather.com/docs/start/get-api-key
-String LOCATION = ""; // https://dev.qweather.com/docs/api/geo/
-String PROXYAPI = "";
-String ssid = APSSID;
-String password = APPSK;
-String configPass = "123456";
-time_t nowTime;
-TFT_eSPI tft = TFT_eSPI();
-String mainw = "";
-String desc = "";
-String times = "";
-int timeZone = 8;
-String temp = "";
-uint32_t BG = TFT_BLACK;
-uint32_t TC = TFT_WHITE;
-WiFiUDP wifiUdp;
-NTP ntp(wifiUdp);
-int n = 0, page = 1, reload = 0, day = 0; //day=0 night=1
-uint16_t tvoc = 1, eco2 = 1;
-int mode = 0, sgpmode = 0; //0 offline 1 online
+String APIKEY = "";                       // https://dev.qweather.com/docs/start/get-api-key
+String LOCATION = "";                     // https://dev.qweather.com/docs/api/geo/
+String PROXYAPI = "";                     // Address for API proxy
+TFT_eSPI tft = TFT_eSPI();                // TFT control
+String ssid = APSSID;                     // Access Point SSID
+String password = APPSK;                  // Access Point Password
+String configPass = "123456";             // Configure password
+time_t nowTime;                           // Now timestamp
+String mainw = "";                        // Real-time weather overview
+String desc = "";                         // Text for Air quality
+String times = "";                        // Time Text Such as "2021-01-01 00:00:00"
+int timeZone = 8;                         // TimeZone
+String temp = "";                         // Temperature
+uint32_t BG = TFT_BLACK;                  // Backgroud Color
+uint32_t TC = TFT_WHITE;                  // Text Color
+WiFiUDP wifiUdp;                          // Used by ntp
+NTP ntp(wifiUdp);                         // NTP client
+int n = 0, page = 1, reload = 0, day = 0; // day=0 night=1
+uint16_t tvoc = 1, eco2 = 1;              // Real-time air quality
+int mode = 0, sgpmode = 0;                // 0 offline 1 online
+long unsigned int offlineClock_lastUpdate = 0;
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -314,7 +315,7 @@ void loop()
         {
             tft.drawRoundRect(300, 167, 170, 140, 10, BG);
             tft.drawFastVLine(300, 170, 135, TFT_WHITE);
-            if (sgp.TVOC != tvoc)
+            if (sgp.TVOC != tvoc || reload == 1)
             {
                 tft.setCursor(320, 220);
                 tft.setFreeFont(FF17);
@@ -338,7 +339,7 @@ void loop()
                 tft.setTextColor(TC);
                 tvoc = sgp.TVOC;
             }
-            if (sgp.eCO2 != eco2)
+            if (sgp.eCO2 != eco2 || reload == 1)
             {
                 tft.setCursor(400, 220);
                 tft.setFreeFont(FF17);
@@ -440,12 +441,8 @@ void conntionWIFI()
     int t = 0;
     while (WiFi.status() != WL_CONNECTED && t <= 30)
     {
-
-        for (int i = 0; i < 4; i++)
-        {
-            tft.print(".");
-            delay(250);
-        }
+        tft.print("=");
+        delay(1000);
         t++;
     }
     tft.println(".");
@@ -458,6 +455,30 @@ void conntionWIFI()
 void handleRoot()
 {
     server.send(200, "text/html", "<h1>HI,ESP8266</h1>");
+}
+
+void handleTime()
+{
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
+    delay(500);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Max-Age", "10000");
+    server.sendHeader("Access-Control-Allow-Methods", "PUT,POST,GET,OPTIONS");
+    server.sendHeader("Access-Control-Allow-Headers", "*");
+    if (server.method() == HTTP_GET)
+    {
+        String oss;
+        oss = nowTime;
+        server.send(200, "text/plain", oss);
+    }
+    if (server.method() == HTTP_POST)
+    {
+        String getTime;
+        getTime = server.arg("plain");
+        nowTime = getTime.toInt() + (timeZone * 60 * 60);
+    }
+    server.close();
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
 void handlewifi()
@@ -639,6 +660,7 @@ void wificonfig(bool pass)
     tft.println(myIP);
     server.on("/", handleRoot);
     server.on("/config/" + configPass, handlewifi);
+    server.on("/time/" + configPass, handleTime);
     server.begin();
     tft.println("[WebConfig] HTTP server started");
     delay(1000);
@@ -656,6 +678,8 @@ void wificonfig(bool pass)
     tft.print(")");
     tft.print("      v");
     tft.println(VERSION);
+    nowTime = millis() + (timeZone * 60 * 60);
+    offlineClock_lastUpdate = millis();
     while (wififlag)
     {
         server.handleClient();
@@ -663,6 +687,7 @@ void wificonfig(bool pass)
         {
             offline();
         }
+        updateTime();
         delay(1000);
     }
     server.close();
@@ -702,13 +727,23 @@ void showInfo()
 
 void updateTime()
 {
-    nowTime = ntp.epoch() + (timeZone * 60 * 60);
+    if (mode != 0)
+    {
+        nowTime = ntp.epoch() + (timeZone * 60 * 60);
+    }
+    else
+    {
+        int m = millis();
+        nowTime = nowTime + ((m - offlineClock_lastUpdate) / 1000);
+        offlineClock_lastUpdate = m;
+    }
+
     struct tm *ptr;
     ptr = localtime(&nowTime);
     char newT[80];
     strftime(newT, 100, "%F %T", ptr);
     //String newT = ntp.formattedTime();
-    if (n % 60 == 0)
+    if (n % 60 == 0 && mode == 1)
     {
         if (n == 360)
         {
@@ -730,8 +765,19 @@ void updateTime()
             mainw = "";
         }
     }
-    tft.setFreeFont(FF6);
-    tft.setCursor(20, 60);
+    int y = 0;
+    if (mode == 0)
+    {
+        tft.setFreeFont(FMB18);
+        y = 80;
+    }
+    else
+    {
+        tft.setFreeFont(FF6);
+        y = 60;
+    }
+    tft.setCursor(20, y);
+
     for (int i = 0; i < 19; i++)
     {
         if (times[i] != newT[i])
@@ -739,7 +785,7 @@ void updateTime()
             int x = tft.getCursorX();
             tft.setTextColor(BG);
             tft.print(times[i]);
-            tft.setCursor(x, 60);
+            tft.setCursor(x, y);
             tft.setTextColor(TC);
             tft.print(newT[i]);
         }
