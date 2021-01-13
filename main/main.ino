@@ -476,8 +476,8 @@ void handleTime()
         String getTime;
         getTime = server.arg("plain");
         nowTime = getTime.toInt() + (timeZone * 60 * 60);
+        server.send(200);
     }
-    server.close();
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
@@ -643,6 +643,7 @@ void wificonfig(bool pass)
         if (wififlag == 0)
         {
             reload = 2;
+            mode = 1;
             return;
         }
     }
@@ -692,6 +693,7 @@ void wificonfig(bool pass)
     }
     server.close();
     WiFi.softAPdisconnect();
+    mode = 1;
     server.on("/", handleRoot);
     server.on("/config/" + configPass, handlewifi);
     server.begin();
