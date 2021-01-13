@@ -651,7 +651,6 @@ void wificonfig(bool pass)
     tft.setTextSize(1);
     tft.println("[AcessPoint] Configuring access point...");
     WiFi.softAP(ssid, password);
-
     IPAddress myIP = WiFi.softAPIP();
     tft.print("[AcessPoint] SSID: ");
     tft.println(ssid);
@@ -681,6 +680,7 @@ void wificonfig(bool pass)
     tft.println(VERSION);
     nowTime = millis() + (timeZone * 60 * 60);
     offlineClock_lastUpdate = millis();
+    mode = 0;
     while (wififlag)
     {
         server.handleClient();
