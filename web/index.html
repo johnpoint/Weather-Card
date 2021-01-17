@@ -36,6 +36,10 @@
                 <label for="newcardpass">New Card Password</label>
             </div>
             <div class="input-field col s6 info">
+                <input id="timezone" placeholder="" type="text" class="validate">
+                <label for="timezone">Time Zone</label>
+            </div>
+            <div class="input-field col s6 info">
                 <input id="ssid" placeholder="" class="validate" type="text">
                 <label for="ssid">WIFI SSID</label>
             </div>
@@ -67,7 +71,8 @@
                 <center>
                     <button id="getconfig" class="btn waves-effect waves-light">GET</button>
                     <button id="pushconfig" class="btn waves-effect waves-light info">PUSH</button>
-                    <button id="pushTime" class="btn waves-effect waves-light">PUSH TIME</button>
+                    <button id="pushTime" class="btn waves-effect waves-light info">PUSH TIME</button>
+                    <button class="btn waves-effect waves-light" onclick="$('.info').show()">SETUP</button>
                 </center>
             </div>
             <div class="col s2 info">
@@ -151,7 +156,7 @@
         $(".in").hide();
         $(".wait").show();
         $("#pushconfig")[0].disabled = true;
-        data = { "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value, "password": $("#newcardpass")[0].value }
+        data = { "timezone": $("#timezone")[0].value, "hssid": $("#aps")[0].value, "hpass": $("#app")[0].value, "ssid": $("#ssid")[0].value, "pass": $("#wifipass")[0].value, "key": $("#apikey")[0].value, "proxy": $("#apiproxy")[0].value, "location": $("#location")[0].value, "password": $("#newcardpass")[0].value }
         $.ajax({
             url: "http://" + $("#ipaddress")[0].value + "/config/" + $("#cardpass")[0].value,
             method: "POST",

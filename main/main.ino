@@ -1,7 +1,6 @@
 #include <TFT_eSPI.h>     // https://github.com/Bodmer/TFT_eSPI
 #include <SPI.h>          // https://www.arduino.cc/en/Reference/SPI
 #include <Arduino_JSON.h> // https://github.com/arduino-libraries/Arduino_JSON
-
 // https://github.com/sstaub/NTP
 #include <WiFiUdp.h>
 #include <NTP.h>
@@ -27,32 +26,32 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "5.5 OTA"
+#define VERSION "6.0 OTA"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
 
-String APIKEY = "";                       // https://dev.qweather.com/docs/start/get-api-key
-String LOCATION = "";                     // https://dev.qweather.com/docs/api/geo/
-String PROXYAPI = "";                     // Address for API proxy
-TFT_eSPI tft = TFT_eSPI();                // TFT control
-String ssid = APSSID;                     // Access Point SSID
-String password = APPSK;                  // Access Point Password
-String configPass = "123456";             // Configure password
-time_t nowTime;                           // Now timestamp
-String mainw = "";                        // Real-time weather overview
-String desc = "";                         // Text for Air quality
-String times = "";                        // Time Text Such as "2021-01-01 00:00:00"
-int timeZone = 8;                         // TimeZone
-String temp = "";                         // Temperature
-uint32_t BG = TFT_BLACK;                  // Backgroud Color
-uint32_t TC = TFT_WHITE;                  // Text Color
-WiFiUDP wifiUdp;                          // Used by ntp
-NTP ntp(wifiUdp);                         // NTP client
-int n = 0, page = 1, reload = 0, day = 0; // day=0 night=1
-uint16_t tvoc = 1, eco2 = 1;              // Real-time air quality
-int mode = 0, sgpmode = 0;                // 0 offline 1 online
-long unsigned int offlineClock_lastUpdate = 0;
+String APIKEY = "";                            // https://dev.qweather.com/docs/start/get-api-key
+String LOCATION = "";                          // https://dev.qweather.com/docs/api/geo/
+String PROXYAPI = "";                          // Address for API proxy
+TFT_eSPI tft = TFT_eSPI();                     // TFT control
+String ssid = APSSID;                          // Access Point SSID
+String password = APPSK;                       // Access Point Password
+String configPass = "123456";                  // Configure password
+time_t nowTime;                                // Now timestamp
+String mainw = "";                             // Real-time weather overview
+String desc = "";                              // Text for Air quality
+String times = "";                             // Time Text Such as "2021-01-01 00:00:00"
+int timeZone = 8;                              // TimeZone
+String temp = "";                              // Temperature
+uint32_t BG = TFT_BLACK;                       // Backgroud Color
+uint32_t TC = TFT_WHITE;                       // Text Color
+WiFiUDP wifiUdp;                               // Used by ntp
+NTP ntp(wifiUdp);                              // NTP client
+int n = 0, page = 1, reload = 0, day = 0;      // day=0 night=1
+uint16_t tvoc = 1, eco2 = 1;                   // Real-time air quality
+int mode = 0, sgpmode = 0;                     // 0 offline 1 online
+long unsigned int offlineClock_lastUpdate = 0; // Localtime
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -60,10 +59,10 @@ JSONVar config;
 Adafruit_SGP30 sgp;
 ESP8266WebServer server(80);
 
+bool loadconfig();
 void conntionWIFI();
 void handleRoot();
 void handlewifi();
-bool Loadconfig();
 void wificonfig(bool pass);
 void showInfo();
 void updateTime();
@@ -74,7 +73,8 @@ JSONVar httpsCom(String host, String path, int port);
 
 void setup(void)
 {
-    Serial.begin(9600);
+    Serial.begin(115200);
+    tft.init();
     tft.begin();
     tft.setRotation(1);
     tft.fillScreen(BG);
@@ -445,7 +445,7 @@ void conntionWIFI()
         delay(1000);
         t++;
     }
-    tft.println(".");
+    tft.println("|");
     if (WiFi.status() == WL_CONNECTED)
     {
         wififlag = 0;
@@ -511,7 +511,7 @@ void handlewifi()
             configFile.print(server.arg("plain"));
         }
         configFile.close();
-        if (Loadconfig())
+        if (loadconfig())
         {
             conntionWIFI();
             if (wififlag == 0)
@@ -528,7 +528,7 @@ void handlewifi()
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
-bool Loadconfig()
+bool loadconfig()
 {
     File configFile = LittleFS.open("/config.json", "r");
     if (!configFile)
@@ -572,6 +572,10 @@ bool Loadconfig()
     {
         configPass = config["password"];
     }
+    if (config["timezone"] != null)
+    {
+        timeZone = config["timezone"];
+    }
     return true;
 }
 
@@ -580,7 +584,7 @@ void offline()
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
     if (!sgp.IAQmeasure())
     {
-        tft.drawRoundRect(300, 167, 170, 140, 10, TFT_RED);
+        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
     }
     else
     {
@@ -637,7 +641,7 @@ void offline()
 
 void wificonfig(bool pass)
 {
-    if (Loadconfig() && !pass)
+    if (loadconfig() && !pass)
     {
         conntionWIFI();
         if (wififlag == 0)
@@ -692,7 +696,7 @@ void wificonfig(bool pass)
         delay(1000);
     }
     server.close();
-    WiFi.softAPdisconnect();
+    WiFi.softAPdisconnect(true);
     mode = 1;
     server.on("/", handleRoot);
     server.on("/config/" + configPass, handlewifi);
