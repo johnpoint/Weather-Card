@@ -1,0 +1,128 @@
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0,maximum-scale=1.0, user-scalable=no'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+    <meta name='renderer' content='webkit'>
+    <meta http-equiv='Cache-Control' content='no-siteapp'>
+    <title>Weather Config Web Editor</title>
+</head>
+
+<body>
+    <h1>Editor</h1>
+    <hr />
+    <form method='POST'>
+        <label>IP:</label>
+        <input id='ip' /><br>
+        <label>Password:</label>
+        <input id='pwd' type='password' /><br>
+        <label>New Password:</label>
+        <input id='npwd' type='password' />
+        <hr />
+        <label>Time Zone:</label>
+        <input id='timezone' />
+        <hr />
+        <label>WIFI SSID:</label>
+        <input id='wssid' /><br>
+        <label>WIFI Password:</label>
+        <input id='wpwd' type='password' />
+        <hr />
+        <label>AP SSID:</label>
+        <input id='assid' /><br>
+        <label>AP Password:</label>
+        <input id='apwd' type='password' />
+        <hr />
+        <label>API Proxy:</label>
+        <input id='aproxy' /><br>
+        <label>Location:</label>
+        <input id='location' /><br>
+        <label>API Key:</label>
+        <input id='akey' />
+        <hr />
+    </form>
+    <button id='getConfig' onclick='getInfo()'>GET</button>
+    <button id='pushconfig' onclick='pushConfig()' class='info' type='submit'>PUSH</button>
+    <button id='pushTime' onclick='pushTime()' class='info'>PUSH TIME</button>
+</body>
+<script>
+    document.querySelectorAll('.info')[0].style.display = 'none';
+    document.querySelectorAll('.info')[1].style.display = 'none';
+    document.querySelector('#ip').value = window.location.host;
+    function getInfo() {
+        fetch('http://' + document.querySelector('#ip').value + '/config/' + document.querySelector('#pwd').value, {
+            'headers': {
+                'accept': '*/*',
+                'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'x-requested-with': 'XMLHttpRequest'
+            },
+            'referrer': 'http://192.168.15.113/',
+            'referrerPolicy': 'no-referrer-when-downgrade',
+            'body': null,
+            'method': 'GET',
+            'mode': 'cors',
+            'credentials': 'omit'
+        })
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                document.querySelector('#apwd').value = data['hpass'];
+                document.querySelector('#assid').value = data['hssid'];
+                document.querySelector('#akey').value = data['key'];
+                document.querySelector('#location').value = data['location'];
+                document.querySelector('#npwd').value = data['password'];
+                document.querySelector('#pwd').value = data['password'];
+                document.querySelector('#wpwd').value = data['pass'];
+                document.querySelector('#aproxy').value = data['proxy'];
+                document.querySelector('#wssid').value = data['ssid'];
+                document.querySelector('#timezone').value = data['timezone'];
+                document.querySelectorAll('.info')[0].style.display = '';
+                document.querySelectorAll('.info')[1].style.display = '';
+            });
+    };
+
+    function pushConfig() {
+        var data = {
+            'hpass': document.querySelector('#apwd').value,
+            'hssid': document.querySelector('#assid').value,
+            'key': document.querySelector('#akey').value,
+            'location': document.querySelector('#location').value,
+            'password': document.querySelector('#npwd').value,
+            'pass': document.querySelector('#wpwd').value,
+            'proxy': document.querySelector('#aproxy').value,
+            'ssid': document.querySelector('#wssid').value,
+            'timezone': document.querySelector('#timezone').value
+        };
+        fetch('http://' + document.querySelector('#ip').value + '/config/' + document.querySelector('#pwd').value, {
+            'headers': {
+                'accept': '*/*',
+                'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            'referrerPolicy': 'no-referrer-when-downgrade',
+            'body': JSON.stringify(data),
+            'method': 'POST',
+            'mode': 'cors',
+            'credentials': 'omit'
+        });
+    };
+
+    function pushTime() {
+        fetch('http://' + document.querySelector('#ip').value + '/time/' + document.querySelector('#pwd').value, {
+            'headers': {
+                'accept': '*/*',
+                'accept-language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                'content-type': 'text/plain'
+            },
+            'referrerPolicy': 'no-referrer-when-downgrade',
+            'body': (new Date().getTime() / 1000).toFixed(0),
+            'method': 'POST',
+            'mode': 'cors',
+            'credentials': 'omit'
+        });
+    };
+
+</script>
+
+</html>

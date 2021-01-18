@@ -20,13 +20,14 @@
 #include <ESP8266WebServer.h>
 
 #include "fonts.h"
+#include "html.h"
 
 #ifndef APSSID
 #define APSSID "NodeMCU"
 #define APPSK "12345678"
 #endif
 
-#define VERSION "6.5 OTA"
+#define VERSION "7.0"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
@@ -468,7 +469,7 @@ void loop()
         tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
         tft.setCursor(20, 60);
         tft.setFreeFont(FF17);
-        tft.print("Can't run normally, please check the configuration");
+        tft.print("Oh, it crashed, please check the configuration");
     }
 
     delay(1000);
@@ -501,7 +502,7 @@ void conntionWIFI()
 
 void handleRoot()
 {
-    server.send(200, "text/html", "<h1>HI,ESP8266</h1>");
+    server.send(200, "text/html", HTMLTEXT);
 }
 
 void handleTime()
@@ -799,7 +800,7 @@ void showInfo()
     tft.print((const char *)config["ssid"]);
     tft.print("]  ");
     tft.print(WiFi.localIP());
-    tft.print("      v");
+    tft.print("           v");
     tft.println(VERSION);
     tft.drawRoundRect(300, 167, 170, 140, 10, TFT_WHITE);
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
