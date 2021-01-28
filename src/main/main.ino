@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "7.0"
+#define VERSION "7.3"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
@@ -147,11 +147,12 @@ void setup(void)
 
 void loop()
 {
+    // Crash detection
     File flagFile = LittleFS.open("/flag", "r");
     String successFlag = flagFile.readStringUntil('\n');
     flagFile.close();
-    ArduinoOTA.handle();
-    server.handleClient();
+    ArduinoOTA.handle();   // OTA monitoring
+    server.handleClient(); // Web server
     if (successFlag != "-1")
     {
         updateTime();
@@ -173,13 +174,18 @@ void loop()
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
-            tft.println(times);
+            tft.println("[Update] Weather Info");
             String a, b, c, d;
-            ESP.wdtFeed();
             JSONVar nowStatus = httpCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", true);
             if (JSON.typeof(nowStatus) == "undefined")
             {
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Error] Weather Info");
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(1000);
             }
             else
             {
@@ -187,7 +193,7 @@ void loop()
                 String a = aa;
                 if (a == "200")
                 {
-                    if (mainw != nowStatus["now"]["text"])
+                    if (mainw != nowStatus["now"]["text"] || reload >= 1) // Handling day and night change icon overload
                     {
                         tft.setFreeFont(FF36);
                         tft.setCursor(20, 120);
@@ -214,11 +220,22 @@ void loop()
                     }
                 }
             }
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Update] Air Info");
             JSONVar StatusNew;
             JSONVar airStatus = httpCom(PROXYAPI, "/v7/air/now/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(airStatus) == "undefined")
             {
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Error] Air Info");
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(1000);
             }
             else
             {
@@ -262,12 +279,23 @@ void loop()
                         tft.print("    ");
                     }
                 }
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Update] Warning Info");
                 String warn = "";
                 uint32_t WC = TFT_WHITE; // wearning color
                 StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en", false);
                 if (JSON.typeof(StatusNew) == "undefined")
                 {
+                    tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                    tft.setCursor(320, 20);
+                    tft.setTextFont(2);
+                    tft.setTextSize(1);
+                    tft.println("[Error] Warning Info");
                     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                    delay(1000);
                 }
                 else
                 {
@@ -304,10 +332,21 @@ void loop()
                 tft.setTextColor(WC);
                 tft.print(warn);
             }
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Update] Hours Info");
             StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(StatusNew) == "undefined")
             {
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Error] Hours Info");
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(1000);
             }
             else
             {
@@ -319,10 +358,21 @@ void loop()
                 }
             }
             ESP.wdtFeed();
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Update] Days Info");
             StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(StatusNew) == "undefined")
             {
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Error] Days Info");
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(1000);
             }
             else
             {
@@ -333,6 +383,7 @@ void loop()
                     dayStatus = StatusNew;
                 }
             }
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
         }
 
         if (n % 3 == 0 || reload == 1)
@@ -948,6 +999,7 @@ void changeIcon(String newI)
 
 JSONVar httpCom(String host, String path, bool https)
 {
+    delay(0);
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
     JSONVar data;
     HTTPClient http;
@@ -1020,4 +1072,5 @@ JSONVar httpCom(String host, String path, bool https)
         tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
         return data;
     }
+    delay(0);
 }
