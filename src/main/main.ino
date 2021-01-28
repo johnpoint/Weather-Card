@@ -7,7 +7,6 @@
 // https://github.com/adafruit/Adafruit_SGP30
 #include "Adafruit_SGP30.h"
 #include <Wire.h>
-#include <stdlib.h>
 #include <ArduinoOTA.h> // https://github.com/jandrassy/ArduinoOTA
 // https://github.com/esp8266/Arduino
 #include <ESP8266WiFi.h>
@@ -69,8 +68,7 @@ void showInfo();
 void updateTime();
 void changeIcon(String newI);
 void offline();
-JSONVar httpCom(String host, String path);
-JSONVar httpsCom(String host, String path, int port);
+JSONVar httpCom(String host, String path, bool https);
 
 void setup(void)
 {
@@ -178,7 +176,7 @@ void loop()
             tft.println(times);
             String a, b, c, d;
             ESP.wdtFeed();
-            JSONVar nowStatus = httpsCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
+            JSONVar nowStatus = httpCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", true);
             if (JSON.typeof(nowStatus) == "undefined")
             {
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
@@ -216,18 +214,57 @@ void loop()
                     }
                 }
             }
-            ESP.wdtFeed();
             JSONVar StatusNew;
-            JSONVar airStatus = httpsCom("devapi.qweather.com", "/v7/air/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", 443);
+            JSONVar airStatus = httpCom(PROXYAPI, "/v7/air/now/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(airStatus) == "undefined")
             {
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
             }
             else
             {
+                const char *aa = airStatus["code"];
+                String a = aa;
+                if (a == "200")
+                {
+                    a = airStatus["now"]["category"];
+                    b = airStatus["now"]["aqi"];
+                    c = airStatus["now"]["pm2p5"];
+                    d = airStatus["now"]["pm10"];
+                    if (desc != a + b + c + d)
+                    {
+                        tft.fillRoundRect(16, 135, 450, 22, 5, BG);
+                        tft.setFreeFont(FF17);
+                        desc = a + b + c;
+                        tft.setCursor(20, 150);
+                        tft.setTextColor(TC);
+                        tft.print(a);
+                        tft.print("   ");
+                        tft.setCursor(tft.getCursorX(), 140);
+                        tft.setFreeFont(FF0);
+                        tft.print("AQI");
+                        tft.setCursor(tft.getCursorX(), 150);
+                        tft.setFreeFont(FF17);
+                        tft.print(b);
+                        tft.print("   ");
+                        tft.setCursor(tft.getCursorX(), 140);
+                        tft.setFreeFont(FF0);
+                        tft.print("PM2.5");
+                        tft.setCursor(tft.getCursorX(), 150);
+                        tft.setFreeFont(FF17);
+                        tft.print(c);
+                        tft.print("   ");
+                        tft.setCursor(tft.getCursorX(), 140);
+                        tft.setFreeFont(FF0);
+                        tft.print("PM10");
+                        tft.setCursor(tft.getCursorX(), 150);
+                        tft.setFreeFont(FF17);
+                        tft.print(d);
+                        tft.print("    ");
+                    }
+                }
                 String warn = "";
                 uint32_t WC = TFT_WHITE; // wearning color
-                StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en");
+                StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en", false);
                 if (JSON.typeof(StatusNew) == "undefined")
                 {
                     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
@@ -264,51 +301,10 @@ void loop()
                         }
                     }
                 }
-                const char *aa = airStatus["code"];
-                String a = aa;
-                if (a == "200")
-                {
-                    a = airStatus["now"]["category"];
-                    b = airStatus["now"]["aqi"];
-                    c = airStatus["now"]["pm2p5"];
-                    d = airStatus["now"]["pm10"];
-                    if (desc != a + b + c + d + warn)
-                    {
-                        tft.fillRoundRect(16, 135, 450, 22, 5, BG);
-                        tft.setFreeFont(FF17);
-                        desc = a + b + c + warn;
-                        tft.setCursor(20, 150);
-                        tft.setTextColor(TC);
-                        tft.print(a);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("AQI");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(b);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("PM2.5");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(c);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("PM10");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(d);
-                        tft.setTextColor(WC);
-                        tft.print("    ");
-                        tft.print(warn);
-                    }
-                }
+                tft.setTextColor(WC);
+                tft.print(warn);
             }
-            ESP.wdtFeed();
-            StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en");
+            StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(StatusNew) == "undefined")
             {
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
@@ -323,7 +319,7 @@ void loop()
                 }
             }
             ESP.wdtFeed();
-            StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en");
+            StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(StatusNew) == "undefined")
             {
                 tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
@@ -950,90 +946,78 @@ void changeIcon(String newI)
     }
 }
 
-JSONVar httpsCom(String host, String path, int port)
+JSONVar httpCom(String host, String path, bool https)
 {
-    JSONVar data;
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
-    WiFiClientSecure httpsClient;
-    httpsClient.setInsecure();
-    httpsClient.setCiphersLessSecure();
-    httpsClient.setTimeout(15000);
-    int r = 0;
-    while ((!httpsClient.connect(host, port)) && (r < 30))
+    JSONVar data;
+    HTTPClient http;
+    if (https)
     {
-        delay(100);
-        r++;
-    }
-    if (r == 30)
-    {
+        WiFiClientSecure client;
+        client.setInsecure();
+        client.connect("https://" + host + path, 443);
+        if (http.begin(client, "https://" + host + path))
+        {
+            int httpCode = http.GET();
+            if (httpCode > 0)
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
+                {
+                    String payload = http.getString();
+                    // Serial.print(payload);
+                    char char_array[payload.length() + 1];
+                    int i = 0;
+                    for (; i < payload.length(); i++)
+                    {
+                        char_array[i] = payload[i];
+                    }
+                    char_array[i] = '\0';
+                    data = JSON.parse(char_array);
+                }
+            }
+            else
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(500);
+            }
+            http.end();
+        }
+        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
         return data;
     }
-    String request = String("GET ") + path + " HTTP/1.1\r\n" +
-                     "Host: " + host + "\r\n" +
-                     "Connection: close\r\n" +
-                     "\r\n";
-    httpsClient.print(request);
-    int flag = 0;
-    String payload = "";
-    while (httpsClient.connected())
+    else
     {
-        String line = httpsClient.readStringUntil('\n');
-        if (line == "\r")
-        {
-            flag = 1;
-        }
-        if (flag == 1)
-        {
-            payload += line;
-        }
-    }
-    char char_array[payload.length() + 1];
-    int i = 0;
-    for (; i < payload.length(); i++)
-    {
-        char_array[i] = payload[i];
-    }
-    char_array[i] = '\0';
-    data = JSON.parse(char_array);
-    httpsClient.stop();
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-    delay(500);
-    return data;
-}
+        WiFiClient client;
 
-JSONVar httpCom(String host, String path)
-{
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
-    HTTPClient http;
-    WiFiClient client;
-    JSONVar data;
-
-    if (http.begin(client, "http://" + host + path))
-    {
-        int httpCode = http.GET();
-        if (httpCode > 0)
+        if (http.begin(client, "http://" + host + path))
         {
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-            if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
+            int httpCode = http.GET();
+            if (httpCode > 0)
             {
-                String payload = http.getString();
-                char char_array[payload.length() + 1];
-                int i = 0;
-                for (; i < payload.length(); i++)
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+                if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
                 {
-                    char_array[i] = payload[i];
+                    String payload = http.getString();
+                    // Serial.print(payload);
+                    char char_array[payload.length() + 1];
+                    int i = 0;
+                    for (; i < payload.length(); i++)
+                    {
+                        char_array[i] = payload[i];
+                    }
+                    char_array[i] = '\0';
+                    data = JSON.parse(char_array);
                 }
-                char_array[i] = '\0';
-                data = JSON.parse(char_array);
             }
+            else
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(500);
+            }
+            http.end();
         }
-        else
-        {
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-            delay(500);
-        }
-        http.end();
+        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+        return data;
     }
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-    return data;
 }
