@@ -54,5 +54,13 @@ def get_data(ftype, dtype, location, key, lang):
             else:
                 rdata = {"code": "404"}
             return rdata
+        elif ftype == "air":
+            data = requests.get(
+                "https://devapi.qweather.com/v7/air/now?location="+location+"&key="+key+"&lang=en").text
+            data = json.loads(data)
+            if data["code"] != "200":
+                return data
+            rdata = {"code": "200", "now": data["now"]}
+            return rdata
     except BaseException:
         return {"code": "500"}
