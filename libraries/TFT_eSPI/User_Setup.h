@@ -1,8 +1,8 @@
 #define ST7796_DRIVER
-#define TFT_CS   PIN_D6
+#define TFT_CS   PIN_D4
 #define TFT_DC   PIN_D3
 #define TFT_RST  -1    // Set TFT_RST to -1 if the display RESET is connected to NodeMCU RST or 3.3V
-#define TOUCH_CS PIN_D6
+#define TOUCH_CS PIN_D8
 #define LOAD_GLCD   // Font 1. Original Adafruit 8 pixel font needs ~1820 bytes in FLASH
 #define LOAD_FONT2  // Font 2. Small 16 pixel high font, needs ~3534 bytes in FLASH, 96 characters
 #define LOAD_FONT4  // Font 4. Medium 26 pixel high font, needs ~5848 bytes in FLASH, 96 characters

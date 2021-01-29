@@ -74,7 +74,6 @@ void setup(void)
 {
     Serial.begin(115200);
     tft.init();
-    tft.begin();
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
     tft.setRotation(1);
     tft.fillScreen(BG);
@@ -155,6 +154,19 @@ void loop()
     server.handleClient(); // Web server
     if (successFlag != "-1")
     {
+        // uint16_t x, y;
+        // static uint16_t color;
+        // if (tft.getTouch(&x, &y))
+        // {
+        //     tft.fillRoundRect(300, 20, 160, 20, 0, TFT_RED);
+        //     tft.setCursor(320, 20);
+        //     tft.printf("x: %i     ", x);
+        //     tft.setCursor(330, 20);
+        //     tft.printf("y: %i    ", y);
+
+        //     tft.drawPixel(x, y, color);
+        //     color += 155;
+        // }
         updateTime();
         if (reload == 2)
         {
@@ -276,9 +288,11 @@ void loop()
                         tft.setCursor(tft.getCursorX(), 150);
                         tft.setFreeFont(FF17);
                         tft.print(d);
-                        tft.print("    ");
+                        tft.print("   ");
                     }
                 }
+                int wx = tft.getCursorX();
+                int wy = tft.getCursorY();
                 tft.fillRoundRect(300, 20, 160, 20, 0, BG);
                 tft.setCursor(320, 20);
                 tft.setTextFont(2);
@@ -329,8 +343,11 @@ void loop()
                         }
                     }
                 }
+                tft.setCursor(wx, wy);
                 tft.setTextColor(WC);
+                tft.setFreeFont(FF21);
                 tft.print(warn);
+                tft.setTextColor(TC);
             }
             tft.fillRoundRect(300, 20, 160, 20, 0, BG);
             tft.setCursor(320, 20);
@@ -884,6 +901,7 @@ void updateTime()
         {
             day = 1;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_BLUE);
+            TC = TFT_SILVER;
             reload = 1;
             mainw = "";
         }
@@ -891,6 +909,7 @@ void updateTime()
         {
             day = 0;
             tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
+            TC = TFT_WHITE;
             reload = 1;
             mainw = "";
         }
@@ -964,15 +983,15 @@ void changeIcon(String newI)
     }
     if ((newI == "Clear" || newI == "Sunny") && day == 0)
     {
-        tft.fillCircle(395, 95, 20, 0xFD20);
-        tft.fillCircle(395, 65, 4, 0xFD20);
-        tft.fillCircle(395, 125, 4, 0xFD20);
-        tft.fillCircle(365, 95, 4, 0xFD20);
-        tft.fillCircle(425, 95, 4, 0xFD20);
-        tft.fillCircle(374, 74, 4, 0xFD20);
-        tft.fillCircle(416, 74, 4, 0xFD20);
-        tft.fillCircle(374, 116, 4, 0xFD20);
-        tft.fillCircle(416, 116, 4, 0xFD20);
+        tft.fillCircle(395, 85, 20, 0xFD20);
+        tft.fillCircle(395, 55, 4, 0xFD20);
+        tft.fillCircle(395, 115, 4, 0xFD20);
+        tft.fillCircle(365, 85, 4, 0xFD20);
+        tft.fillCircle(425, 85, 4, 0xFD20);
+        tft.fillCircle(374, 64, 4, 0xFD20);
+        tft.fillCircle(416, 64, 4, 0xFD20);
+        tft.fillCircle(374, 106, 4, 0xFD20);
+        tft.fillCircle(416, 106, 4, 0xFD20);
     }
     if ((newI == "Clear" || newI == "Sunny") && day == 1)
     {

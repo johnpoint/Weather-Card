@@ -39,6 +39,15 @@ def get_data(ftype, dtype, location, key, lang):
                          "text": data["daily"][i]["textDay"]}
                     rdata["daily"].append(d)
                 return rdata
+            if dtype == "now":
+                data = requests.get(
+                    "https://devapi.qweather.com/v7/weather/now?location="+location+"&key="+key+"&lang=en").text
+                data = json.loads(data)
+                if data["code"] != "200":
+                    return data
+                rdata = {"code": "200"}
+                rdata["now"] = data["now"]
+                return rdata
         elif ftype == "warning":
             data = requests.get(
                 "https://devapi.qweather.com/v7/warning/now?location="+location+"&key="+key+"&lang=en").text
