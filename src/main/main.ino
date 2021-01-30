@@ -179,7 +179,7 @@ void loop()
             times = "";
             temp = "";
         }
-        if (n % 300 == 0 || reload >= 1)
+        if (n % 3000 == 0 || reload >= 1)
         {
             ntp.update();
             tft.fillRoundRect(300, 20, 160, 20, 0, BG);
@@ -188,7 +188,7 @@ void loop()
             tft.setTextSize(1);
             tft.println("[Update] Weather Info");
             String a, b, c, d;
-            JSONVar nowStatus = httpCom("devapi.qweather.com", "/v7/weather/now?location=" + LOCATION + "&key=" + APIKEY + "&lang=en&gzip=n", true);
+            JSONVar nowStatus = httpCom(PROXYAPI, "/v7/weather/now/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(nowStatus) == "undefined")
             {
                 tft.fillRoundRect(300, 20, 160, 20, 0, BG);
@@ -403,7 +403,7 @@ void loop()
             tft.fillRoundRect(300, 20, 160, 20, 0, BG);
         }
 
-        if (n % 3 == 0 || reload == 1)
+        if (n % 30 == 0 || reload == 1)
         {
             if (!sgp.IAQmeasure())
             {
@@ -464,7 +464,7 @@ void loop()
             }
         }
 
-        if (n % 15 == 0 || reload == 1)
+        if (n % 150 == 0 || reload == 1)
         {
             tft.setFreeFont(FF33);
             if (page == 0)
@@ -536,7 +536,7 @@ void loop()
         tft.print("Oh, it crashed, please check the configuration");
     }
 
-    delay(1000);
+    delay(100);
 }
 
 int wififlag = 1;
@@ -926,25 +926,28 @@ void updateTime()
         y = 60;
     }
     tft.setCursor(20, y);
-
-    for (int i = 0; i < 19; i++)
+    String newTs = newT;
+    if (newTs != times)
     {
-        if (times[i] != newT[i])
+        for (int i = 0; i < 19; i++)
         {
-            int x = tft.getCursorX();
-            tft.setTextColor(BG);
-            tft.print(times[i]);
-            tft.setCursor(x, y);
-            tft.setTextColor(TC);
-            tft.print(newT[i]);
+            if (times[i] != newT[i])
+            {
+                int x = tft.getCursorX();
+                tft.setTextColor(BG);
+                tft.print(times[i]);
+                tft.setCursor(x, y);
+                tft.setTextColor(TC);
+                tft.print(newT[i]);
+            }
+            else
+            {
+                tft.setTextColor(TC);
+                tft.print(times[i]);
+            }
         }
-        else
-        {
-            tft.setTextColor(TC);
-            tft.print(times[i]);
-        }
+        times = newT;
     }
-    times = newT;
 }
 
 void changeIcon(String newI)
