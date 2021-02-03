@@ -16,7 +16,21 @@ flask run -h 0.0.0.0 # for development
 
 Power on the NodeMCU. After the firmware is burned for the first time, it will automatically enter the AP mode because the configuration file does not exist. Check the AP information and ip address on the display. Use a browser to open web/index.html and enter the relevant information to start the configuration. The default password is 123456
 
+## 连线
+
+| 部件    | 针脚 | 部件   | 针脚      |
+|---------|------|--------|-----------|
+| ESP8266 | D0   | TTP223 | OUT       |
+| ESP8266 | D1   | SGP30  | SCL       |
+| ESP8266 | D2   | SGP30  | SDA       |
+| ESP8266 | D3   | ST7796 | DC        |
+| ESP8266 | D4   | ST7796 | CS        |
+| ESP8266 | D5   | ST7796 | SCK       |
+| ESP8266 | D7   | ST7796 | SDI(MOSI) |
+| ESP8266 | RST  | ST7796 | RST       |
+
 # 成品
+
 ## 本体
 
 ![](https://cdn.lvcshu.info/img/20201202002.jpg)
