@@ -52,6 +52,7 @@ int n = 0, page = 1, reload = 0, day = 0;      // day=0 night=1
 uint16_t tvoc = 1, eco2 = 1;                   // Real-time air quality
 int mode = 0, sgpmode = 0;                     // 0 offline 1 online
 long unsigned int offlineClock_lastUpdate = 0; // Localtime
+int touch = 0;
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -72,6 +73,7 @@ JSONVar httpCom(String host, String path, bool https);
 
 void setup(void)
 {
+    pinMode(PIN_D0, INPUT);
     Serial.begin(115200);
     tft.init();
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
@@ -121,6 +123,17 @@ void setup(void)
     tft.println("[Web Config] HTTP server started");
     ArduinoOTA.setHostname("ESP8266");
     ArduinoOTA.begin();
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.setCursor(20, tft.getCursorY());
+    tft.println("[OTA] Start");
+    tft.setCursor(20, tft.getCursorY());
+    tft.print("[NTP] Begin -> ");
+    tft.println(NTPADDRESS);
+    ntp.ntpServer(NTPADDRESS);
+    ntp.begin();
+    ntp.timeZone(TIMEZONE);
+    delay(1000);
     showInfo();
     server.on("/", handleRoot);
     server.on("/config/" + configPass, handlewifi);
@@ -144,6 +157,429 @@ void setup(void)
     flagFile.close();
 }
 
+int touchStart = 0;
+int touchTime = 0;
+
+int touchCommand()
+{
+    if (digitalRead(PIN_D0) == 1 && touch == 0)
+    {
+        touchStart = millis();
+        touch = 1; // Press down
+    }
+    if (digitalRead(PIN_D0) == 0 && touch == 1)
+    {
+        touchTime = millis() - touchStart;
+        touch = 2; // Leave
+    }
+    if (digitalRead(PIN_D0) == 1 && touch == 1)
+    {
+        if (millis() - touchStart >= 1300 && millis() - touchStart < 2000)
+        {
+            tft.fillCircle(460, 20, 5, TFT_YELLOW);
+        }
+        else if (millis() - touchStart >= 2000)
+        {
+            tft.fillCircle(460, 20, 5, TFT_RED);
+        }
+        else
+        {
+            tft.fillCircle(460, 20, 5, TFT_GREEN);
+        }
+    }
+    else
+    {
+        tft.fillCircle(460, 20, 5, BG);
+    }
+
+    if (touch == 2)
+    {
+        Serial.println(touchTime);
+        touch = 0;
+        if (touchTime >= 2000)
+        {
+            return 2; // Looooooooooong
+        }
+        return 1; // Short
+    }
+    return 0; // No
+}
+
+void menu()
+{
+    tft.setCursor(20, 20);
+    tft.println("Welcome!");
+    tft.setCursor(20, tft.getCursorY());
+    tft.print("Welcome!");
+}
+
+void modeOne(int o)
+{
+    updateTime();
+    if (reload == 2)
+    {
+        n = 0;
+        day = 0;
+        ntp.stop();
+        showInfo();
+        desc = "";
+        mainw = "";
+        times = "";
+        temp = "";
+    }
+    if (n % 3000 == 0 || reload >= 1)
+    {
+        ntp.update();
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.setCursor(320, 20);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.println("[Update] Weather Info");
+        String a, b, c, d;
+        JSONVar nowStatus = httpCom(PROXYAPI, "/v7/weather/now/" + LOCATION + "/" + APIKEY + "/en", false);
+        if (JSON.typeof(nowStatus) == "undefined")
+        {
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Error] Weather Info");
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            delay(1000);
+        }
+        else
+        {
+            const char *aa = nowStatus["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                if (mainw != nowStatus["now"]["text"] || reload >= 1) // Handling day and night change icon overload
+                {
+                    tft.setFreeFont(FF36);
+                    tft.setCursor(20, 120);
+                    tft.setTextColor(BG);
+                    tft.print(mainw);
+                    mainw = nowStatus["now"]["text"];
+                    tft.setCursor(20, 120);
+                    tft.setTextColor(TC);
+                    tft.println(mainw);
+                    changeIcon(mainw);
+                }
+                a = nowStatus["now"]["temp"];
+                b = nowStatus["now"]["humidity"];
+                if (a + "°C/" + b + "%" != temp)
+                {
+                    tft.setFreeFont(FF6);
+                    tft.setCursor(240, 120);
+                    tft.setTextColor(BG);
+                    tft.print(temp);
+                    temp = a + "°C/" + b + "%";
+                    tft.setCursor(240, 120);
+                    tft.setTextColor(TC);
+                    tft.print(temp);
+                }
+            }
+        }
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.setCursor(320, 20);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.println("[Update] Air Info");
+        JSONVar StatusNew;
+        JSONVar airStatus = httpCom(PROXYAPI, "/v7/air/now/" + LOCATION + "/" + APIKEY + "/en", false);
+        if (JSON.typeof(airStatus) == "undefined")
+        {
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Error] Air Info");
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            delay(1000);
+        }
+        else
+        {
+            const char *aa = airStatus["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                a = airStatus["now"]["category"];
+                b = airStatus["now"]["aqi"];
+                c = airStatus["now"]["pm2p5"];
+                d = airStatus["now"]["pm10"];
+                if (desc != a + b + c + d)
+                {
+                    tft.fillRoundRect(16, 135, 450, 22, 5, BG);
+                    tft.setFreeFont(FF17);
+                    desc = a + b + c;
+                    tft.setCursor(20, 150);
+                    tft.setTextColor(TC);
+                    tft.print(a);
+                    tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("AQI");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(b);
+                    tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("PM2.5");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(c);
+                    tft.print("   ");
+                    tft.setCursor(tft.getCursorX(), 140);
+                    tft.setFreeFont(FF0);
+                    tft.print("PM10");
+                    tft.setCursor(tft.getCursorX(), 150);
+                    tft.setFreeFont(FF17);
+                    tft.print(d);
+                    tft.print("   ");
+                }
+            }
+            int wx = tft.getCursorX();
+            int wy = tft.getCursorY();
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Update] Warning Info");
+            String warn = "";
+            uint32_t WC = TFT_WHITE; // wearning color
+            StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en", false);
+            if (JSON.typeof(StatusNew) == "undefined")
+            {
+                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.setCursor(320, 20);
+                tft.setTextFont(2);
+                tft.setTextSize(1);
+                tft.println("[Error] Warning Info");
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                delay(1000);
+            }
+            else
+            {
+                const char *aa = StatusNew["code"];
+                String a = aa;
+                if (a == "200" && StatusNew["warning"]["typeName"] != null)
+                {
+                    const char *tn = StatusNew["warning"]["typeName"];
+                    const char *level = StatusNew["warning"]["level"];
+                    warn = tn;
+                    String typeLevel = level;
+                    if (typeLevel == "White")
+                    {
+                        WC = TFT_WHITE;
+                    }
+                    else if (typeLevel == "Yellow")
+                    {
+                        WC = TFT_YELLOW;
+                    }
+                    else if (typeLevel == "Blue")
+                    {
+                        WC = TFT_BLUE;
+                    }
+                    else if (typeLevel == "Red")
+                    {
+                        WC = TFT_RED;
+                    }
+                    else if (typeLevel == "Orange")
+                    {
+                        WC = TFT_ORANGE;
+                    }
+                }
+            }
+            tft.setCursor(wx, wy);
+            tft.setTextColor(WC);
+            tft.setFreeFont(FF21);
+            tft.print(warn);
+            tft.setTextColor(TC);
+        }
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.setCursor(320, 20);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.println("[Update] Hours Info");
+        StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", false);
+        if (JSON.typeof(StatusNew) == "undefined")
+        {
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Error] Hours Info");
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            delay(1000);
+        }
+        else
+        {
+            const char *aa = StatusNew["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                hrStatus = StatusNew;
+            }
+        }
+        ESP.wdtFeed();
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.setCursor(320, 20);
+        tft.setTextFont(2);
+        tft.setTextSize(1);
+        tft.println("[Update] Days Info");
+        StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", false);
+        if (JSON.typeof(StatusNew) == "undefined")
+        {
+            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.setCursor(320, 20);
+            tft.setTextFont(2);
+            tft.setTextSize(1);
+            tft.println("[Error] Days Info");
+            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            delay(1000);
+        }
+        else
+        {
+            const char *aa = StatusNew["code"];
+            String a = aa;
+            if (a == "200")
+            {
+                dayStatus = StatusNew;
+            }
+        }
+        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+    }
+
+    if (n % 30 == 0 || reload >= 1)
+    {
+        if (reload >= 1)
+        {
+            tvoc = -1;
+            eco2 = -1;
+        }
+        if (!sgp.IAQmeasure())
+        {
+            tft.drawRoundRect(300, 167, 170, 140, 10, TFT_RED);
+        }
+        else
+        {
+            tft.drawRoundRect(300, 167, 170, 140, 10, BG);
+            tft.drawFastVLine(300, 170, 135, TFT_WHITE);
+            if (sgp.TVOC != tvoc || reload == 1)
+            {
+                tft.setCursor(320, 220);
+                tft.setFreeFont(FF17);
+                tft.println("TVOC");
+                tft.setCursor(320, tft.getCursorY() + 10);
+                tft.setFreeFont(FF6);
+                tft.fillRect(315, 230, 75, 30, BG);
+                if (sgp.TVOC > 40 && sgp.TVOC <= 80)
+                {
+                    tft.setTextColor(TFT_YELLOW);
+                }
+                else if (sgp.TVOC > 80)
+                {
+                    tft.setTextColor(TFT_RED);
+                }
+                else
+                {
+                    tft.setTextColor(TFT_GREEN);
+                }
+                tft.print(sgp.TVOC);
+                tft.setTextColor(TC);
+                tvoc = sgp.TVOC;
+            }
+            if (sgp.eCO2 != eco2 || reload == 1)
+            {
+                tft.setCursor(400, 220);
+                tft.setFreeFont(FF17);
+                tft.println("CO2");
+                tft.setCursor(400, tft.getCursorY() + 10);
+                tft.setFreeFont(FF6);
+                tft.fillRect(395, 230, 75, 30, BG);
+                if (sgp.eCO2 > 800 && sgp.eCO2 <= 1000)
+                {
+                    tft.setTextColor(TFT_YELLOW);
+                }
+                else if (sgp.eCO2 > 1000)
+                {
+                    tft.setTextColor(TFT_RED);
+                }
+                else
+                {
+                    tft.setTextColor(TFT_GREEN);
+                }
+                tft.print(sgp.eCO2);
+                tft.setTextColor(TC);
+                eco2 = sgp.eCO2;
+            }
+        }
+    }
+
+    if (n % 150 == 0 || reload == 1 || o > 0)
+    {
+        tft.setFreeFont(FF33);
+        if (page == 0)
+        {
+            if (JSON.typeof(hrStatus) == "undefined")
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            }
+            else
+            {
+                const char *aa = hrStatus["code"];
+                String a = aa;
+                if (a == "200")
+                {
+                    tft.fillRect(10, 163, 275, 144, BG);
+                    page = 1;
+                    for (int i = 0; i < 7; i++)
+                    {
+                        tft.setCursor(20, 182 + i * 20);
+                        tft.setTextColor(TC);
+                        tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
+                        tft.setCursor(20 + 70, 182 + i * 20);
+                        tft.print((const char *)hrStatus["hourly"][i]["text"]);
+                        tft.setCursor(20 + 210, 182 + i * 20);
+                        tft.print((const char *)hrStatus["hourly"][i]["temp"]);
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (JSON.typeof(dayStatus) == "undefined")
+            {
+                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            }
+            else
+            {
+                const char *aa = dayStatus["code"];
+                String a = aa;
+                if (a == "200")
+                {
+                    tft.fillRect(10, 163, 275, 144, BG);
+                    page = 0;
+                    for (int i = 0; i < 7; i++)
+                    {
+                        tft.setCursor(20, 182 + i * 20);
+                        tft.setTextColor(TC);
+                        tft.print((const char *)dayStatus["daily"][i]["fxDate"]);
+                        tft.setCursor(20 + 70, 182 + i * 20);
+                        tft.print((const char *)dayStatus["daily"][i]["text"]);
+                        tft.setCursor(20 + 180, 182 + i * 20);
+                        tft.print((const char *)dayStatus["daily"][i]["temp"]);
+                    }
+                }
+            }
+        }
+    }
+    reload = 0;
+}
+
+int nowMode = 0;
+
 void loop()
 {
     // Crash detection
@@ -154,376 +590,35 @@ void loop()
     server.handleClient(); // Web server
     if (successFlag != "-1")
     {
-        // uint16_t x, y;
-        // static uint16_t color;
-        // if (tft.getTouch(&x, &y))
-        // {
-        //     tft.fillRoundRect(300, 20, 160, 20, 0, TFT_RED);
-        //     tft.setCursor(320, 20);
-        //     tft.printf("x: %i     ", x);
-        //     tft.setCursor(330, 20);
-        //     tft.printf("y: %i    ", y);
-
-        //     tft.drawPixel(x, y, color);
-        //     color += 155;
-        // }
-        updateTime();
-        if (reload == 2)
+        int o = touchCommand();
+        if (o == 2)
         {
-            n = 0;
-            day = 0;
-            ntp.stop();
-            showInfo();
-            desc = "";
-            mainw = "";
-            times = "";
-            temp = "";
-        }
-        if (n % 3000 == 0 || reload >= 1)
-        {
-            ntp.update();
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-            tft.setCursor(320, 20);
-            tft.setTextFont(2);
-            tft.setTextSize(1);
-            tft.println("[Update] Weather Info");
-            String a, b, c, d;
-            JSONVar nowStatus = httpCom(PROXYAPI, "/v7/weather/now/" + LOCATION + "/" + APIKEY + "/en", false);
-            if (JSON.typeof(nowStatus) == "undefined")
+            tft.fillScreen(BG);
+            if (nowMode == 1)
             {
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                tft.setCursor(320, 20);
-                tft.setTextFont(2);
-                tft.setTextSize(1);
-                tft.println("[Error] Weather Info");
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                delay(1000);
+                nowMode = 0;
+                reload = 2;
+                mode = 1;
+                showInfo();
             }
             else
             {
-                const char *aa = nowStatus["code"];
-                String a = aa;
-                if (a == "200")
-                {
-                    if (mainw != nowStatus["now"]["text"] || reload >= 1) // Handling day and night change icon overload
-                    {
-                        tft.setFreeFont(FF36);
-                        tft.setCursor(20, 120);
-                        tft.setTextColor(BG);
-                        tft.print(mainw);
-                        mainw = nowStatus["now"]["text"];
-                        tft.setCursor(20, 120);
-                        tft.setTextColor(TC);
-                        tft.println(mainw);
-                        changeIcon(mainw);
-                    }
-                    a = nowStatus["now"]["temp"];
-                    b = nowStatus["now"]["humidity"];
-                    if (a + "°C/" + b + "%" != temp)
-                    {
-                        tft.setFreeFont(FF6);
-                        tft.setCursor(240, 120);
-                        tft.setTextColor(BG);
-                        tft.print(temp);
-                        temp = a + "°C/" + b + "%";
-                        tft.setCursor(240, 120);
-                        tft.setTextColor(TC);
-                        tft.print(temp);
-                    }
-                }
-            }
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-            tft.setCursor(320, 20);
-            tft.setTextFont(2);
-            tft.setTextSize(1);
-            tft.println("[Update] Air Info");
-            JSONVar StatusNew;
-            JSONVar airStatus = httpCom(PROXYAPI, "/v7/air/now/" + LOCATION + "/" + APIKEY + "/en", false);
-            if (JSON.typeof(airStatus) == "undefined")
-            {
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                tft.setCursor(320, 20);
-                tft.setTextFont(2);
-                tft.setTextSize(1);
-                tft.println("[Error] Air Info");
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                delay(1000);
-            }
-            else
-            {
-                const char *aa = airStatus["code"];
-                String a = aa;
-                if (a == "200")
-                {
-                    a = airStatus["now"]["category"];
-                    b = airStatus["now"]["aqi"];
-                    c = airStatus["now"]["pm2p5"];
-                    d = airStatus["now"]["pm10"];
-                    if (desc != a + b + c + d)
-                    {
-                        tft.fillRoundRect(16, 135, 450, 22, 5, BG);
-                        tft.setFreeFont(FF17);
-                        desc = a + b + c;
-                        tft.setCursor(20, 150);
-                        tft.setTextColor(TC);
-                        tft.print(a);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("AQI");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(b);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("PM2.5");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(c);
-                        tft.print("   ");
-                        tft.setCursor(tft.getCursorX(), 140);
-                        tft.setFreeFont(FF0);
-                        tft.print("PM10");
-                        tft.setCursor(tft.getCursorX(), 150);
-                        tft.setFreeFont(FF17);
-                        tft.print(d);
-                        tft.print("   ");
-                    }
-                }
-                int wx = tft.getCursorX();
-                int wy = tft.getCursorY();
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                tft.setCursor(320, 20);
-                tft.setTextFont(2);
-                tft.setTextSize(1);
-                tft.println("[Update] Warning Info");
-                String warn = "";
-                uint32_t WC = TFT_WHITE; // wearning color
-                StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en", false);
-                if (JSON.typeof(StatusNew) == "undefined")
-                {
-                    tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                    tft.setCursor(320, 20);
-                    tft.setTextFont(2);
-                    tft.setTextSize(1);
-                    tft.println("[Error] Warning Info");
-                    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                    delay(1000);
-                }
-                else
-                {
-                    const char *aa = StatusNew["code"];
-                    String a = aa;
-                    if (a == "200" && StatusNew["warning"]["typeName"] != null)
-                    {
-                        const char *tn = StatusNew["warning"]["typeName"];
-                        const char *level = StatusNew["warning"]["level"];
-                        warn = tn;
-                        String typeLevel = level;
-                        if (typeLevel == "White")
-                        {
-                            WC = TFT_WHITE;
-                        }
-                        else if (typeLevel == "Yellow")
-                        {
-                            WC = TFT_YELLOW;
-                        }
-                        else if (typeLevel == "Blue")
-                        {
-                            WC = TFT_BLUE;
-                        }
-                        else if (typeLevel == "Red")
-                        {
-                            WC = TFT_RED;
-                        }
-                        else if (typeLevel == "Orange")
-                        {
-                            WC = TFT_ORANGE;
-                        }
-                    }
-                }
-                tft.setCursor(wx, wy);
-                tft.setTextColor(WC);
-                tft.setFreeFont(FF21);
-                tft.print(warn);
-                tft.setTextColor(TC);
-            }
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-            tft.setCursor(320, 20);
-            tft.setTextFont(2);
-            tft.setTextSize(1);
-            tft.println("[Update] Hours Info");
-            StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", false);
-            if (JSON.typeof(StatusNew) == "undefined")
-            {
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                tft.setCursor(320, 20);
-                tft.setTextFont(2);
-                tft.setTextSize(1);
-                tft.println("[Error] Hours Info");
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                delay(1000);
-            }
-            else
-            {
-                const char *aa = StatusNew["code"];
-                String a = aa;
-                if (a == "200")
-                {
-                    hrStatus = StatusNew;
-                }
-            }
-            ESP.wdtFeed();
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-            tft.setCursor(320, 20);
-            tft.setTextFont(2);
-            tft.setTextSize(1);
-            tft.println("[Update] Days Info");
-            StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", false);
-            if (JSON.typeof(StatusNew) == "undefined")
-            {
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-                tft.setCursor(320, 20);
-                tft.setTextFont(2);
-                tft.setTextSize(1);
-                tft.println("[Error] Days Info");
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                delay(1000);
-            }
-            else
-            {
-                const char *aa = StatusNew["code"];
-                String a = aa;
-                if (a == "200")
-                {
-                    dayStatus = StatusNew;
-                }
-            }
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
-        }
-
-        if (n % 30 == 0 || reload == 1)
-        {
-            if (!sgp.IAQmeasure())
-            {
-                tft.drawRoundRect(300, 167, 170, 140, 10, TFT_RED);
-            }
-            else
-            {
-                tft.drawRoundRect(300, 167, 170, 140, 10, BG);
-                tft.drawFastVLine(300, 170, 135, TFT_WHITE);
-                if (sgp.TVOC != tvoc || reload == 1)
-                {
-                    tft.setCursor(320, 220);
-                    tft.setFreeFont(FF17);
-                    tft.println("TVOC");
-                    tft.setCursor(320, tft.getCursorY() + 10);
-                    tft.setFreeFont(FF6);
-                    tft.fillRect(315, 230, 75, 30, BG);
-                    if (sgp.TVOC > 40 && sgp.TVOC <= 80)
-                    {
-                        tft.setTextColor(TFT_YELLOW);
-                    }
-                    else if (sgp.TVOC > 80)
-                    {
-                        tft.setTextColor(TFT_RED);
-                    }
-                    else
-                    {
-                        tft.setTextColor(TFT_GREEN);
-                    }
-                    tft.print(sgp.TVOC);
-                    tft.setTextColor(TC);
-                    tvoc = sgp.TVOC;
-                }
-                if (sgp.eCO2 != eco2 || reload == 1)
-                {
-                    tft.setCursor(400, 220);
-                    tft.setFreeFont(FF17);
-                    tft.println("CO2");
-                    tft.setCursor(400, tft.getCursorY() + 10);
-                    tft.setFreeFont(FF6);
-                    tft.fillRect(395, 230, 75, 30, BG);
-                    if (sgp.eCO2 > 800 && sgp.eCO2 <= 1000)
-                    {
-                        tft.setTextColor(TFT_YELLOW);
-                    }
-                    else if (sgp.eCO2 > 1000)
-                    {
-                        tft.setTextColor(TFT_RED);
-                    }
-                    else
-                    {
-                        tft.setTextColor(TFT_GREEN);
-                    }
-                    tft.print(sgp.eCO2);
-                    tft.setTextColor(TC);
-                    eco2 = sgp.eCO2;
-                }
+                mode = 2;
+                nowMode = 1;
             }
         }
-
-        if (n % 150 == 0 || reload == 1)
+        if (nowMode == 0)
         {
-            tft.setFreeFont(FF33);
-            if (page == 0)
+            modeOne(o);
+        }
+        if (nowMode == 1)
+        {
+            updateTime();
+            if (n % 10 == 0)
             {
-                if (JSON.typeof(hrStatus) == "undefined")
-                {
-                    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                }
-                else
-                {
-                    const char *aa = hrStatus["code"];
-                    String a = aa;
-                    if (a == "200")
-                    {
-                        tft.fillRect(10, 163, 275, 144, BG);
-                        page = 1;
-                        for (int i = 0; i < 7; i++)
-                        {
-                            tft.setCursor(20, 182 + i * 20);
-                            tft.setTextColor(TC);
-                            tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
-                            tft.setCursor(20 + 70, 182 + i * 20);
-                            tft.print((const char *)hrStatus["hourly"][i]["text"]);
-                            tft.setCursor(20 + 210, 182 + i * 20);
-                            tft.print((const char *)hrStatus["hourly"][i]["temp"]);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (JSON.typeof(dayStatus) == "undefined")
-                {
-                    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
-                }
-                else
-                {
-                    const char *aa = dayStatus["code"];
-                    String a = aa;
-                    if (a == "200")
-                    {
-                        tft.fillRect(10, 163, 275, 144, BG);
-                        page = 0;
-                        for (int i = 0; i < 7; i++)
-                        {
-                            tft.setCursor(20, 182 + i * 20);
-                            tft.setTextColor(TC);
-                            tft.print((const char *)dayStatus["daily"][i]["fxDate"]);
-                            tft.setCursor(20 + 70, 182 + i * 20);
-                            tft.print((const char *)dayStatus["daily"][i]["text"]);
-                            tft.setCursor(20 + 180, 182 + i * 20);
-                            tft.print((const char *)dayStatus["daily"][i]["temp"]);
-                        }
-                    }
-                }
+                offline();
             }
         }
-        reload = 0;
-        n++;
         File flagFile = LittleFS.open("/flag", "w");
         flagFile.print("1\n");
         flagFile.close();
@@ -535,7 +630,11 @@ void loop()
         tft.setFreeFont(FF17);
         tft.print("Oh, it crashed, please check the configuration");
     }
-
+    if (touch == 2)
+    {
+        touch = 0;
+    }
+    n++;
     delay(100);
 }
 
@@ -724,12 +823,12 @@ void offline()
     {
         if (sgp.TVOC != tvoc)
         {
-            tft.setCursor(192, 150);
+            tft.setCursor(172, 150);
             tft.setFreeFont(FF17);
             tft.println("TVOC");
-            tft.setCursor(192, tft.getCursorY() + 10);
+            tft.setCursor(172, tft.getCursorY() + 10);
             tft.setFreeFont(FF6);
-            tft.fillRect(187, 160, 75, 30, BG);
+            tft.fillRect(167, 160, 75, 30, BG);
             if (sgp.TVOC > 40 && sgp.TVOC <= 80)
             {
                 tft.setTextColor(TFT_YELLOW);
@@ -748,12 +847,12 @@ void offline()
         }
         if (sgp.eCO2 != eco2)
         {
-            tft.setCursor(288, 150);
+            tft.setCursor(268, 150);
             tft.setFreeFont(FF17);
             tft.println("CO2");
-            tft.setCursor(288, tft.getCursorY() + 10);
+            tft.setCursor(268, tft.getCursorY() + 10);
             tft.setFreeFont(FF6);
-            tft.fillRect(283, 160, 75, 30, BG);
+            tft.fillRect(263, 160, 75, 30, BG);
             if (sgp.eCO2 > 800 && sgp.eCO2 <= 1000)
             {
                 tft.setTextColor(TFT_YELLOW);
@@ -832,7 +931,7 @@ void wificonfig(bool pass)
             offline();
         }
         updateTime();
-        delay(1000);
+        delay(500);
     }
     server.close();
     WiFi.softAPdisconnect(true);
@@ -844,17 +943,6 @@ void wificonfig(bool pass)
 
 void showInfo()
 {
-    tft.setTextFont(2);
-    tft.setTextSize(1);
-    tft.setCursor(20, tft.getCursorY());
-    tft.println("[OTA] Start");
-    tft.setCursor(20, tft.getCursorY());
-    tft.print("[NTP] Begin -> ");
-    tft.println(NTPADDRESS);
-    ntp.ntpServer(NTPADDRESS);
-    ntp.begin();
-    ntp.timeZone(TIMEZONE);
-    delay(1000);
     tft.fillScreen(BG);
     tft.setCursor(20, 20);
     tft.setTextColor(TC);
@@ -914,18 +1002,20 @@ void updateTime()
             mainw = "";
         }
     }
-    int y = 0;
-    if (mode == 0)
+    int x, y;
+    if (mode == 0 || mode == 2)
     {
         tft.setFreeFont(FMB18);
+        x = 30;
         y = 80;
     }
     else
     {
         tft.setFreeFont(FF6);
+        x = 20;
         y = 60;
     }
-    tft.setCursor(20, y);
+    tft.setCursor(x, y);
     String newTs = newT;
     if (newTs != times)
     {
