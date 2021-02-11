@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "7.3"
+#define VERSION "7.5"
 
 #define NTPADDRESS "ntp.aliyun.com"
 #define TIMEZONE 8
@@ -256,13 +256,25 @@ void modeOne(int o)
                 if (mainw != nowStatus["now"]["text"] || reload >= 1) // Handling day and night change icon overload
                 {
                     tft.setFreeFont(FF36);
-                    tft.setCursor(20, 120);
-                    tft.setTextColor(BG);
-                    tft.print(mainw);
+                    tft.fillRect(18, 83, 220, 60, BG);
                     mainw = nowStatus["now"]["text"];
                     tft.setCursor(20, 120);
                     tft.setTextColor(TC);
-                    tft.println(mainw);
+                    tft.print(mainw);
+                    GFXfont list[] = {
+                        *FF35,
+                        *FF34,
+                        *FF33};
+                    int i = 0;
+                    while (tft.getCursorX() >= 240 && i < 3)
+                    {
+                        tft.fillRect(18, 83, 220, 60, BG);
+                        tft.setFreeFont(&list[i]);
+                        tft.setCursor(20, 120);
+                        tft.setTextColor(TC);
+                        tft.print(mainw);
+                        i++;
+                    }
                     changeIcon(mainw);
                 }
                 a = nowStatus["now"]["temp"];
@@ -604,6 +616,7 @@ void loop()
             else
             {
                 mode = 2;
+                reload = 1;
                 nowMode = 1;
             }
         }
@@ -617,6 +630,10 @@ void loop()
             if (n % 10 == 0)
             {
                 offline();
+                if (reload == 1)
+                {
+                    reload = 0;
+                }
             }
         }
         File flagFile = LittleFS.open("/flag", "w");
@@ -814,6 +831,11 @@ bool loadconfig()
 
 void offline()
 {
+    if (reload == 1)
+    {
+        tvoc = -1;
+        eco2 = -1;
+    }
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
     if (!sgp.IAQmeasure())
     {
@@ -1040,6 +1062,14 @@ void updateTime()
     }
 }
 
+uint16_t rgb(uint8_t red, uint8_t green, uint8_t blue)
+{
+    red >>= 3;
+    green >>= 2;
+    blue >>= 3;
+    return (red << 11) | (green << 5) | blue;
+}
+
 void changeIcon(String newI)
 {
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
@@ -1071,8 +1101,24 @@ void changeIcon(String newI)
         tft.drawCircle(375, 92, 15, BG);
         tft.fillCircle(415, 94, 11, TC);
         tft.fillRect(379, 90, 36, 16, TC);
-        tft.drawLine(397, 111, 392, 131, TFT_BLUE);
-        tft.drawLine(398, 111, 393, 131, TFT_BLUE);
+        tft.drawLine(397, 111, 392, 131, rgb(30, 144, 255));
+        tft.drawLine(398, 111, 393, 131, rgb(30, 144, 255));
+        tft.drawLine(399, 111, 394, 131, rgb(30, 144, 255));
+    }
+    if (newI == "Moderate Rain")
+    {
+        tft.fillCircle(395, 77, 17, TC);
+        tft.fillCircle(375, 92, 13, TC);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TC);
+        tft.fillRect(379, 90, 36, 16, TC);
+        tft.drawLine(387, 111, 382, 131, rgb(30, 144, 255));
+        tft.drawLine(388, 111, 383, 131, rgb(30, 144, 255));
+        tft.drawLine(389, 111, 384, 131, rgb(30, 144, 255));
+        tft.drawLine(402, 111, 397, 131, rgb(30, 144, 255));
+        tft.drawLine(403, 111, 398, 131, rgb(30, 144, 255));
+        tft.drawLine(404, 111, 399, 131, rgb(30, 144, 255));
     }
     if ((newI == "Clear" || newI == "Sunny") && day == 0)
     {
