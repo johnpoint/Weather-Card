@@ -28,7 +28,7 @@
 
 #define VERSION "7.5"
 
-#define NTPADDRESS "ntp.aliyun.com"
+#define NTPADDRESS "ntp5.aliyun.com"
 #define TIMEZONE 8
 
 String APIKEY = "";                            // https://dev.qweather.com/docs/start/get-api-key
@@ -253,6 +253,7 @@ void modeOne(int o)
             String a = aa;
             if (a == "200")
             {
+                int f = 0;
                 if (mainw != nowStatus["now"]["text"] || reload >= 1) // Handling day and night change icon overload
                 {
                     tft.setFreeFont(FF36);
@@ -268,6 +269,7 @@ void modeOne(int o)
                     int i = 0;
                     while (tft.getCursorX() >= 240 && i < 3)
                     {
+                        f = 1;
                         tft.fillRect(18, 83, 220, 60, BG);
                         tft.setFreeFont(&list[i]);
                         tft.setCursor(20, 120);
@@ -279,8 +281,9 @@ void modeOne(int o)
                 }
                 a = nowStatus["now"]["temp"];
                 b = nowStatus["now"]["humidity"];
-                if (a + "°C/" + b + "%" != temp)
+                if (a + "°C/" + b + "%" != temp || f == 1)
                 {
+                    tft.fillRect(238, 90, 110, 50, BG);
                     tft.setFreeFont(FF6);
                     tft.setCursor(240, 120);
                     tft.setTextColor(BG);
