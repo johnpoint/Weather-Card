@@ -60,6 +60,7 @@ JSONVar config;
 Adafruit_SGP30 sgp;
 ESP8266WebServer server(80);
 
+// 声明函数
 bool loadconfig();
 void conntionWIFI();
 void handleRoot();
@@ -71,12 +72,15 @@ void changeIcon(String newI);
 void offline();
 JSONVar httpCom(String host, String path, bool https);
 
+// arduino 初始化函数
 void setup(void)
 {
-    pinMode(PIN_D0, INPUT);
-    Serial.begin(115200);
-    tft.init();
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
+    pinMode(PIN_D0, INPUT); // 设定 pin 模式
+    Serial.begin(115200); // 设定串口频率
+    tft.init(); // 初始化 TFT 屏幕
+
+    // 绘制界面
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW); 
     tft.setRotation(1);
     tft.fillScreen(BG);
     tft.setTextColor(TC);
@@ -92,6 +96,8 @@ void setup(void)
     tft.setCursor(20, tft.getCursorY());
     tft.println("[LittleFS] Mounting FS...");
     tft.setCursor(20, tft.getCursorY());
+
+    // 挂载文件系统
     if (!LittleFS.begin())
     {
         tft.println("[LittleFS] Failed to mount file system");
@@ -101,6 +107,8 @@ void setup(void)
             delay(0);
         }
     }
+
+    // 读取 SGP 芯片状态（空气质量检测）
     if (!sgp.begin())
     {
         tft.println("[Sensor] SGP30 not found :(");
@@ -118,11 +126,14 @@ void setup(void)
         tft.setCursor(20, tft.getCursorY());
     }
 
-    wificonfig(false);
+    wificonfig(false); // 配置 WIFI
     tft.setCursor(20, tft.getCursorY());
     tft.println("[Web Config] HTTP server started");
-    ArduinoOTA.setHostname("ESP8266");
+
+    // 初始化 OTA 监听
+    ArduinoOTA.setHostname("ESP8266"); 
     ArduinoOTA.begin();
+
     tft.setTextFont(2);
     tft.setTextSize(1);
     tft.setCursor(20, tft.getCursorY());
@@ -130,11 +141,15 @@ void setup(void)
     tft.setCursor(20, tft.getCursorY());
     tft.print("[NTP] Begin -> ");
     tft.println(NTPADDRESS);
+
+    // 设置网络时间同步
     ntp.ntpServer(NTPADDRESS);
     ntp.begin();
     ntp.timeZone(TIMEZONE);
     delay(1000);
     showInfo();
+
+    // http 服务监听
     server.on("/", handleRoot);
     server.on("/config/" + configPass, handlewifi);
     server.begin();
@@ -157,9 +172,11 @@ void setup(void)
     flagFile.close();
 }
 
+// 监听触摸时间的变量
 int touchStart = 0;
 int touchTime = 0;
 
+// touchCommand 判断触摸命令
 int touchCommand()
 {
     if (digitalRead(PIN_D0) == 1 && touch == 0)
@@ -188,7 +205,7 @@ int touchCommand()
         }
     }
     else
-    {
+    {manually rebuild your IntelliSense confi
         tft.fillCircle(460, 20, 5, BG);
     }
 
@@ -205,6 +222,7 @@ int touchCommand()
     return 0; // No
 }
 
+// 菜单，未实现的功能
 void menu()
 {
     tft.setCursor(20, 20);
@@ -213,8 +231,10 @@ void menu()
     tft.print("Welcome!");
 }
 
+// 模式一
 void modeOne(int o)
 {
+    // 更新时间
     updateTime();
     if (reload == 2)
     {
@@ -227,6 +247,8 @@ void modeOne(int o)
         times = "";
         temp = "";
     }
+
+    // 更新天气
     if (n % 3000 == 0 || reload >= 1)
     {
         ntp.update();
@@ -466,6 +488,7 @@ void modeOne(int o)
         tft.fillRoundRect(300, 20, 160, 20, 0, BG);
     }
 
+    // 更新空气质量信息
     if (n % 30 == 0 || reload >= 1)
     {
         if (reload >= 1)
@@ -595,6 +618,7 @@ void modeOne(int o)
 
 int nowMode = 0;
 
+// arduino 循环执行函数
 void loop()
 {
     // Crash detection
@@ -660,6 +684,7 @@ void loop()
 
 int wififlag = 1;
 
+// 连接wifi函数
 void conntionWIFI()
 {
     WiFi.disconnect();
@@ -670,6 +695,7 @@ void conntionWIFI()
     tft.println(config["ssid"]);
     int t = 0;
     tft.setCursor(20, tft.getCursorY());
+    // 等待连接上
     while (WiFi.status() != WL_CONNECTED && t <= 30)
     {
         tft.print("=");
@@ -683,11 +709,13 @@ void conntionWIFI()
     }
 }
 
+// 监听 http 访问，返回首页
 void handleRoot()
 {
     server.send(200, "text/html", HTMLTEXT);
 }
 
+// 监听 http 访问，设置本地时间
 void handleTime()
 {
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
@@ -712,6 +740,7 @@ void handleTime()
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
+// 监听 http 更新配置文件
 void handlewifi()
 {
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
@@ -762,6 +791,7 @@ void handlewifi()
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
 }
 
+// 加载配置文件
 bool loadconfig()
 {
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
@@ -832,6 +862,7 @@ bool loadconfig()
     return true;
 }
 
+// 无网络显示空气质量
 void offline()
 {
     if (reload == 1)
@@ -897,6 +928,7 @@ void offline()
     }
 }
 
+// 配置wifi
 void wificonfig(bool pass)
 {
     if (loadconfig() && !pass)
@@ -966,6 +998,7 @@ void wificonfig(bool pass)
     server.begin();
 }
 
+// 加载信息
 void showInfo()
 {
     tft.fillScreen(BG);
@@ -985,6 +1018,7 @@ void showInfo()
     tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
 }
 
+// 更新时间
 void updateTime()
 {
     if (mode != 0)
@@ -1065,6 +1099,7 @@ void updateTime()
     }
 }
 
+// rgb转换TFT颜色
 uint16_t rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
     red >>= 3;
@@ -1073,6 +1108,7 @@ uint16_t rgb(uint8_t red, uint8_t green, uint8_t blue)
     return (red << 11) | (green << 5) | blue;
 }
 
+// 绘制图标
 void changeIcon(String newI)
 {
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
@@ -1095,6 +1131,30 @@ void changeIcon(String newI)
         tft.drawCircle(375, 92, 15, BG);
         tft.fillCircle(415, 94, 11, 0x6B4D);
         tft.fillRect(375, 90, 39, 16, 0x6B4D);
+    }
+    if (newI == "Heavy Rain")
+    {
+        tft.fillCircle(395, 77, 17, TC);
+        tft.fillCircle(375, 92, 13, TC);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TC);
+        tft.fillRect(379, 90, 36, 16, TC);
+        tft.drawLine(382, 111, 377, 131, rgb(30, 144, 255));
+        tft.drawLine(383, 111, 378, 131, rgb(30, 144, 255));
+        tft.drawLine(384, 111, 379, 131, rgb(30, 144, 255));
+        tft.drawLine(387, 111, 382, 131, rgb(30, 144, 255));
+        tft.drawLine(388, 111, 383, 131, rgb(30, 144, 255));
+        tft.drawLine(389, 111, 384, 131, rgb(30, 144, 255));
+        tft.drawLine(392, 111, 387, 131, rgb(30, 144, 255));
+        tft.drawLine(393, 111, 388, 131, rgb(30, 144, 255));
+        tft.drawLine(394, 111, 389, 131, rgb(30, 144, 255));
+        tft.drawLine(397, 111, 392, 131, rgb(30, 144, 255));
+        tft.drawLine(398, 111, 393, 131, rgb(30, 144, 255));
+        tft.drawLine(399, 111, 394, 131, rgb(30, 144, 255));
+        tft.drawLine(402, 111, 397, 131, rgb(30, 144, 255));
+        tft.drawLine(403, 111, 398, 131, rgb(30, 144, 255));
+        tft.drawLine(404, 111, 399, 131, rgb(30, 144, 255));
     }
     if (newI == "Light Rain")
     {
@@ -1158,6 +1218,7 @@ void changeIcon(String newI)
     }
 }
 
+// http访问函数
 JSONVar httpCom(String host, String path, bool https)
 {
     delay(0);
