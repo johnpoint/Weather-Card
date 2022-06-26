@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "7.5"
+#define VERSION "0.8.0 OTA"
 
 #define NTPADDRESS "ntp5.aliyun.com"
 #define TIMEZONE 8
@@ -100,7 +100,7 @@ void setup(void)
     // 挂载文件系统
     if (!LittleFS.begin())
     {
-        tft.println("[LittleFS] Failed to mount file system");
+        tft.println("[LittleFS] Failed to mount file system"); 
         tft.setCursor(20, tft.getCursorY());
         while (1)
         {
@@ -205,7 +205,7 @@ int touchCommand()
         }
     }
     else
-    {manually rebuild your IntelliSense confi
+    {
         tft.fillCircle(460, 20, 5, BG);
     }
 
@@ -252,7 +252,7 @@ void modeOne(int o)
     if (n % 3000 == 0 || reload >= 1)
     {
         ntp.update();
-        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.fillRoundRect(320, 20, 140, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
         tft.setTextSize(1);
@@ -261,7 +261,7 @@ void modeOne(int o)
         JSONVar nowStatus = httpCom(PROXYAPI, "/v7/weather/now/" + LOCATION + "/" + APIKEY + "/en", false);
         if (JSON.typeof(nowStatus) == "undefined")
         {
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.fillRoundRect(320, 20, 140, 20, 0, BG);
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
@@ -317,7 +317,7 @@ void modeOne(int o)
                 }
             }
         }
-        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.fillRoundRect(320, 20, 140, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
         tft.setTextSize(1);
@@ -326,7 +326,7 @@ void modeOne(int o)
         JSONVar airStatus = httpCom(PROXYAPI, "/v7/air/now/" + LOCATION + "/" + APIKEY + "/en", false);
         if (JSON.typeof(airStatus) == "undefined")
         {
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.fillRoundRect(320, 20, 140, 20, 0, BG);
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
@@ -378,7 +378,7 @@ void modeOne(int o)
             }
             int wx = tft.getCursorX();
             int wy = tft.getCursorY();
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.fillRoundRect(320, 20, 140, 20, 0, BG);
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
@@ -388,7 +388,7 @@ void modeOne(int o)
             StatusNew = httpCom(PROXYAPI, "/v7/warning/now/" + LOCATION + "/" + APIKEY + "/en", false);
             if (JSON.typeof(StatusNew) == "undefined")
             {
-                tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+                tft.fillRoundRect(320, 20, 140, 20, 0, BG);
                 tft.setCursor(320, 20);
                 tft.setTextFont(2);
                 tft.setTextSize(1);
@@ -434,7 +434,7 @@ void modeOne(int o)
             tft.print(warn);
             tft.setTextColor(TC);
         }
-        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.fillRoundRect(320, 20, 140, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
         tft.setTextSize(1);
@@ -442,7 +442,7 @@ void modeOne(int o)
         StatusNew = httpCom(PROXYAPI, "/v7/weather/24h/" + LOCATION + "/" + APIKEY + "/en", false);
         if (JSON.typeof(StatusNew) == "undefined")
         {
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.fillRoundRect(320, 20, 140, 20, 0, BG);
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
@@ -460,7 +460,7 @@ void modeOne(int o)
             }
         }
         ESP.wdtFeed();
-        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.fillRoundRect(320, 20, 140, 20, 0, BG);
         tft.setCursor(320, 20);
         tft.setTextFont(2);
         tft.setTextSize(1);
@@ -468,7 +468,7 @@ void modeOne(int o)
         StatusNew = httpCom(PROXYAPI, "/v7/weather/7d/" + LOCATION + "/" + APIKEY + "/en", false);
         if (JSON.typeof(StatusNew) == "undefined")
         {
-            tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+            tft.fillRoundRect(320, 20, 140, 20, 0, BG);
             tft.setCursor(320, 20);
             tft.setTextFont(2);
             tft.setTextSize(1);
@@ -485,7 +485,7 @@ void modeOne(int o)
                 dayStatus = StatusNew;
             }
         }
-        tft.fillRoundRect(300, 20, 160, 20, 0, BG);
+        tft.fillRoundRect(320, 20, 140, 20, 0, BG);
     }
 
     // 更新空气质量信息
@@ -577,7 +577,7 @@ void modeOne(int o)
                         tft.setCursor(20, 182 + i * 20);
                         tft.setTextColor(TC);
                         tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
-                        tft.setCursor(20 + 70, 182 + i * 20);
+                        tft.setCursor(20 + 55, 182 + i * 20);
                         tft.print((const char *)hrStatus["hourly"][i]["text"]);
                         tft.setCursor(20 + 210, 182 + i * 20);
                         tft.print((const char *)hrStatus["hourly"][i]["temp"]);
@@ -604,7 +604,7 @@ void modeOne(int o)
                         tft.setCursor(20, 182 + i * 20);
                         tft.setTextColor(TC);
                         tft.print((const char *)dayStatus["daily"][i]["fxDate"]);
-                        tft.setCursor(20 + 70, 182 + i * 20);
+                        tft.setCursor(20 + 55, 182 + i * 20);
                         tft.print((const char *)dayStatus["daily"][i]["text"]);
                         tft.setCursor(20 + 180, 182 + i * 20);
                         tft.print((const char *)dayStatus["daily"][i]["temp"]);
@@ -1010,7 +1010,7 @@ void showInfo()
     tft.print((const char *)config["ssid"]);
     tft.print("]  ");
     tft.print(WiFi.localIP());
-    tft.print("           v");
+    tft.print("      v");
     tft.println(VERSION);
     tft.drawRoundRect(300, 167, 170, 140, 10, TFT_WHITE);
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
