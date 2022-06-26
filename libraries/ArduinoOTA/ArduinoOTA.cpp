@@ -350,30 +350,25 @@ void ArduinoOTAClass::_runUpdate()
   tft.begin();
   tft.setRotation(1);
   tft.fillScreen(TFT_BLACK);
-  tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
+  tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
   tft.setCursor(20, 20);
   tft.setTextFont(2);
   tft.setTextSize(1);
-  tft.print("OTA upgrading ");
-  int x, y;
+  int x, y, xx;
+  xx = tft.getCursorX();
+  tft.println("OTA v0.0.16");
+  tft.setCursor(xx, tft.getCursorY());
+  tft.print("New firmware is downloading");
   x = tft.getCursorX();
   y = tft.getCursorY();
-  int i = 0;
-  char a[4] = {'|', '/', '--', '\\'};
   uint32_t written, total = 0;
   while (!Update.isFinished() && (client.connected() || client.available()))
   {
-    tft.setTextColor(TFT_BLACK);
-    tft.setCursor(x, y);
-    tft.print(a[i]);
-    i++;
-    if (i == 4)
-    {
-      i = 0;
-    }
+    tft.fillRect(x, y, 60, 20, TFT_BLACK);
     tft.setTextColor(TFT_WHITE);
     tft.setCursor(x, y);
-    tft.print(a[i]);
+    tft.print(Update.progress() * 100 / Update.size());
+    tft.println("%");
     int waited = 1000;
     while (!client.available() && waited--)
       delay(1);
@@ -401,8 +396,19 @@ void ArduinoOTAClass::_runUpdate()
     }
   }
 
+  tft.fillRect(x, y, 60, 20, TFT_BLACK);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(x, y);
+  tft.print(Update.progress() * 100 / Update.size());
+  tft.println("%");
+
   if (Update.end())
   {
+
+    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
+    tft.setCursor(20, tft.getCursorY());
+    tft.println("Upgradeing...");
+
     // Ensure last count packet has been sent out and not combined with the final OK
     client.flush();
     delay(1000);
@@ -422,14 +428,13 @@ void ArduinoOTAClass::_runUpdate()
 #ifdef OTA_DEBUG
       OTA_DEBUG.printf("Rebooting...\n");
 #endif
-      //let serial/network finish tasks that might be given in _end_callback
+      // let serial/network finish tasks that might be given in _end_callback
       tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
-      tft.println(".");
       tft.setCursor(20, tft.getCursorY());
       tft.println("Update Success!");
       tft.setCursor(20, tft.getCursorY());
       tft.println("Rebooting...");
-      delay(1100);
+      delay(1000);
       ESP.restart();
     }
   }
@@ -448,7 +453,7 @@ void ArduinoOTAClass::_runUpdate()
   }
 }
 
-//this needs to be called in the loop()
+// this needs to be called in the loop()
 void ArduinoOTAClass::handle()
 {
   if (_state == OTA_RUNUPDATE)
@@ -459,7 +464,7 @@ void ArduinoOTAClass::handle()
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_MDNS)
   if (_useMDNS)
-    MDNS.update(); //handle MDNS update as well, given that ArduinoOTA relies on it anyways
+    MDNS.update(); // handle MDNS update as well, given that ArduinoOTA relies on it anyways
 #endif
 }
 
