@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "0.8.0 OTA"
+#define VERSION "0.8.2 OTA"
 
 #define NTPADDRESS "ntp5.aliyun.com"
 #define TIMEZONE 8
@@ -53,6 +53,11 @@ uint16_t tvoc = 1, eco2 = 1;                   // Real-time air quality
 int mode = 0, sgpmode = 0;                     // 0 offline 1 online
 long unsigned int offlineClock_lastUpdate = 0; // Localtime
 int touch = 0;
+// 监听触摸时间的变量
+int touchStart = 0;
+int touchTime = 0;
+
+int nowMode = 0;
 
 JSONVar hrStatus;
 JSONVar dayStatus;
@@ -70,17 +75,18 @@ void showInfo();
 void updateTime();
 void changeIcon(String newI);
 void offline();
+void drawGlobalTips(int color);
 JSONVar httpCom(String host, String path, bool https);
 
 // arduino 初始化函数
 void setup(void)
 {
     pinMode(PIN_D0, INPUT); // 设定 pin 模式
-    Serial.begin(115200); // 设定串口频率
-    tft.init(); // 初始化 TFT 屏幕
+    Serial.begin(115200);   // 设定串口频率
+    tft.init();             // 初始化 TFT 屏幕
 
     // 绘制界面
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW); 
+    drawGlobalTips(TFT_YELLOW);
     tft.setRotation(1);
     tft.fillScreen(BG);
     tft.setTextColor(TC);
@@ -100,7 +106,7 @@ void setup(void)
     // 挂载文件系统
     if (!LittleFS.begin())
     {
-        tft.println("[LittleFS] Failed to mount file system"); 
+        tft.println("[LittleFS] Failed to mount file system");
         tft.setCursor(20, tft.getCursorY());
         while (1)
         {
@@ -131,7 +137,7 @@ void setup(void)
     tft.println("[Web Config] HTTP server started");
 
     // 初始化 OTA 监听
-    ArduinoOTA.setHostname("ESP8266"); 
+    ArduinoOTA.setHostname("ESP8266");
     ArduinoOTA.begin();
 
     tft.setTextFont(2);
@@ -171,10 +177,6 @@ void setup(void)
     }
     flagFile.close();
 }
-
-// 监听触摸时间的变量
-int touchStart = 0;
-int touchTime = 0;
 
 // touchCommand 判断触摸命令
 int touchCommand()
@@ -266,7 +268,7 @@ void modeOne(int o)
             tft.setTextFont(2);
             tft.setTextSize(1);
             tft.println("[Error] Weather Info");
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            drawGlobalTips(TFT_RED);
             delay(1000);
         }
         else
@@ -331,7 +333,7 @@ void modeOne(int o)
             tft.setTextFont(2);
             tft.setTextSize(1);
             tft.println("[Error] Air Info");
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            drawGlobalTips(TFT_RED);
             delay(1000);
         }
         else
@@ -393,7 +395,7 @@ void modeOne(int o)
                 tft.setTextFont(2);
                 tft.setTextSize(1);
                 tft.println("[Error] Warning Info");
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                drawGlobalTips(TFT_RED);
                 delay(1000);
             }
             else
@@ -447,7 +449,7 @@ void modeOne(int o)
             tft.setTextFont(2);
             tft.setTextSize(1);
             tft.println("[Error] Hours Info");
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            drawGlobalTips(TFT_RED);
             delay(1000);
         }
         else
@@ -473,7 +475,7 @@ void modeOne(int o)
             tft.setTextFont(2);
             tft.setTextSize(1);
             tft.println("[Error] Days Info");
-            tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+            drawGlobalTips(TFT_RED);
             delay(1000);
         }
         else
@@ -562,7 +564,7 @@ void modeOne(int o)
         {
             if (JSON.typeof(hrStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                drawGlobalTips(TFT_RED);
             }
             else
             {
@@ -589,7 +591,7 @@ void modeOne(int o)
         {
             if (JSON.typeof(dayStatus) == "undefined")
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                drawGlobalTips(TFT_RED);
             }
             else
             {
@@ -616,7 +618,10 @@ void modeOne(int o)
     reload = 0;
 }
 
-int nowMode = 0;
+void drawGlobalTips(int color)
+{
+    tft.drawRoundRect(5, 5, 470, 310, 10, color);
+}
 
 // arduino 循环执行函数
 void loop()
@@ -633,18 +638,18 @@ void loop()
         if (o == 2)
         {
             tft.fillScreen(BG);
-            if (nowMode == 1)
+            if (nowMode != 1)
+            {
+                nowMode++;
+                mode = 2;
+                reload = 1;
+            }
+            else
             {
                 nowMode = 0;
                 reload = 2;
                 mode = 1;
                 showInfo();
-            }
-            else
-            {
-                mode = 2;
-                reload = 1;
-                nowMode = 1;
             }
         }
         if (nowMode == 0)
@@ -669,7 +674,7 @@ void loop()
     }
     else
     {
-        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+        drawGlobalTips(TFT_RED);
         tft.setCursor(20, 60);
         tft.setFreeFont(FF17);
         tft.print("Oh, it crashed, please check the configuration");
@@ -718,7 +723,7 @@ void handleRoot()
 // 监听 http 访问，设置本地时间
 void handleTime()
 {
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
+    drawGlobalTips(TFT_PINK);
     delay(500);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.sendHeader("Access-Control-Max-Age", "10000");
@@ -737,13 +742,13 @@ void handleTime()
         nowTime = getTime.toInt() + (timeZone * 60 * 60);
         server.send(200);
     }
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    drawGlobalTips(TFT_GREEN);
 }
 
 // 监听 http 更新配置文件
 void handlewifi()
 {
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_PINK);
+    drawGlobalTips(TFT_PINK);
     delay(500);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.sendHeader("Access-Control-Max-Age", "10000");
@@ -788,13 +793,13 @@ void handlewifi()
             }
         }
     }
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    drawGlobalTips(TFT_GREEN);
 }
 
 // 加载配置文件
 bool loadconfig()
 {
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
+    drawGlobalTips(TFT_YELLOW);
     File configFile = LittleFS.open("/config.json", "r");
     if (!configFile)
     {
@@ -870,10 +875,10 @@ void offline()
         tvoc = -1;
         eco2 = -1;
     }
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    drawGlobalTips(TFT_GREEN);
     if (!sgp.IAQmeasure())
     {
-        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+        drawGlobalTips(TFT_RED);
     }
     else
     {
@@ -1014,7 +1019,7 @@ void showInfo()
     tft.println(VERSION);
     tft.drawRoundRect(300, 167, 170, 140, 10, TFT_WHITE);
     tft.fillRoundRect(350, 50, 90, 90, 5, BG);
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+    drawGlobalTips(TFT_GREEN);
     tft.drawRoundRect(10, 80, 460, 80, 10, TFT_YELLOW);
 }
 
@@ -1036,7 +1041,7 @@ void updateTime()
     ptr = localtime(&nowTime);
     char newT[80];
     strftime(newT, 100, "%F %T", ptr);
-    //String newT = ntp.formattedTime();
+    // String newT = ntp.formattedTime();
     if (n % 60 == 0 && mode == 1)
     {
         if (n == 360)
@@ -1156,6 +1161,35 @@ void changeIcon(String newI)
         tft.drawLine(403, 111, 398, 131, rgb(30, 144, 255));
         tft.drawLine(404, 111, 399, 131, rgb(30, 144, 255));
     }
+    if (newI == "Thundershower")
+    {
+        tft.fillCircle(395, 77, 17, TC);
+        tft.fillCircle(375, 92, 13, TC);
+        tft.drawCircle(375, 92, 14, BG);
+        tft.drawCircle(375, 92, 15, BG);
+        tft.fillCircle(415, 94, 11, TC);
+        tft.fillRect(379, 90, 36, 16, TC);
+
+        tft.drawLine(382, 111, 377, 131, rgb(30, 144, 255));
+        tft.drawLine(383, 111, 378, 131, rgb(30, 144, 255));
+        tft.drawLine(384, 111, 379, 131, rgb(30, 144, 255));
+
+        tft.drawLine(387, 111, 382, 131, TFT_YELLOW);
+        tft.drawLine(388, 111, 383, 131, TFT_YELLOW);
+        tft.drawLine(389, 111, 384, 131, TFT_YELLOW);
+
+        tft.drawLine(392, 111, 387, 131, rgb(30, 144, 255));
+        tft.drawLine(393, 111, 388, 131, rgb(30, 144, 255));
+        tft.drawLine(394, 111, 389, 131, rgb(30, 144, 255));
+
+        tft.drawLine(397, 111, 392, 131, TFT_YELLOW);
+        tft.drawLine(398, 111, 393, 131, TFT_YELLOW);
+        tft.drawLine(399, 111, 394, 131, TFT_YELLOW);
+        
+        tft.drawLine(402, 111, 397, 131, rgb(30, 144, 255));
+        tft.drawLine(403, 111, 398, 131, rgb(30, 144, 255));
+        tft.drawLine(404, 111, 399, 131, rgb(30, 144, 255));
+    }
     if (newI == "Light Rain")
     {
         tft.fillCircle(395, 77, 17, TC);
@@ -1222,7 +1256,7 @@ void changeIcon(String newI)
 JSONVar httpCom(String host, String path, bool https)
 {
     delay(0);
-    tft.drawRoundRect(5, 5, 470, 310, 10, TFT_BLUE);
+    drawGlobalTips(TFT_BLUE);
     JSONVar data;
     HTTPClient http;
     if (https)
@@ -1235,7 +1269,7 @@ JSONVar httpCom(String host, String path, bool https)
             int httpCode = http.GET();
             if (httpCode > 0)
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+                drawGlobalTips(TFT_GREEN);
                 if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
                 {
                     String payload = http.getString();
@@ -1252,12 +1286,12 @@ JSONVar httpCom(String host, String path, bool https)
             }
             else
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                drawGlobalTips(TFT_RED);
                 delay(500);
             }
             http.end();
         }
-        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+        drawGlobalTips(TFT_GREEN);
         return data;
     }
     else
@@ -1269,7 +1303,7 @@ JSONVar httpCom(String host, String path, bool https)
             int httpCode = http.GET();
             if (httpCode > 0)
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+                drawGlobalTips(TFT_GREEN);
                 if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY)
                 {
                     String payload = http.getString();
@@ -1286,12 +1320,12 @@ JSONVar httpCom(String host, String path, bool https)
             }
             else
             {
-                tft.drawRoundRect(5, 5, 470, 310, 10, TFT_RED);
+                drawGlobalTips(TFT_RED);
                 delay(500);
             }
             http.end();
         }
-        tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
+        drawGlobalTips(TFT_GREEN);
         return data;
     }
     delay(0);
