@@ -354,21 +354,28 @@ void ArduinoOTAClass::_runUpdate()
   tft.setCursor(20, 20);
   tft.setTextFont(2);
   tft.setTextSize(1);
+  tft.setTextColor(TFT_WHITE);
   int x, y, xx;
   xx = tft.getCursorX();
-  tft.println("OTA v0.0.16");
+  tft.println("OTA v1.0.1");
   tft.setCursor(xx, tft.getCursorY());
-  tft.print("New firmware is downloading");
+  tft.print("Firmware update has been downloaded ");
   x = tft.getCursorX();
   y = tft.getCursorY();
+  tft.setTextSize(6);
+  tft.setTextFont(2);
   uint32_t written, total = 0;
+  int dnowPercent = 0;
   while (!Update.isFinished() && (client.connected() || client.available()))
   {
-    tft.fillRect(x, y, 60, 20, TFT_BLACK);
-    tft.setTextColor(TFT_WHITE);
-    tft.setCursor(x, y);
-    tft.print(Update.progress() * 100 / Update.size());
-    tft.println("%");
+    int newNum = Update.progress() * 100 / Update.size();
+    if (newNum != dnowPercent)
+    {
+      tft.fillRect(x, y - 20, 200, 100, TFT_BLACK);
+      tft.setCursor(x, y - 20);
+      tft.println(Update.progress() * 100 / Update.size() + "%");
+      dnowPercent = newNum;
+    }
     int waited = 1000;
     while (!client.available() && waited--)
       delay(1);
@@ -396,18 +403,22 @@ void ArduinoOTAClass::_runUpdate()
     }
   }
 
-  tft.fillRect(x, y, 60, 20, TFT_BLACK);
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(x, y);
-  tft.print(Update.progress() * 100 / Update.size());
-  tft.println("%");
+  tft.fillRect(x, y - 20, 200, 100, TFT_BLACK);
+  tft.setCursor(x, y - 20);
+  tft.println(Update.progress() * 100 / Update.size() + "%");
 
+  tft.setCursor(x, y);
+  tft.setTextSize(1);
+  tft.setTextFont(2);
+  tft.print("\n");
+  delay(100);
+  tft.fillRect(x, y - 20, 200, 100, TFT_BLACK);
   if (Update.end())
   {
 
     tft.drawRoundRect(5, 5, 470, 310, 10, TFT_YELLOW);
     tft.setCursor(20, tft.getCursorY());
-    tft.println("Upgradeing...");
+    tft.println("Firmware update is flashing");
 
     // Ensure last count packet has been sent out and not combined with the final OK
     client.flush();
@@ -431,9 +442,9 @@ void ArduinoOTAClass::_runUpdate()
       // let serial/network finish tasks that might be given in _end_callback
       tft.drawRoundRect(5, 5, 470, 310, 10, TFT_GREEN);
       tft.setCursor(20, tft.getCursorY());
-      tft.println("Update Success!");
+      tft.println("Firmware update flashing completed!");
       tft.setCursor(20, tft.getCursorY());
-      tft.println("Rebooting...");
+      tft.println("Rebooting");
       delay(1000);
       ESP.restart();
     }
