@@ -586,8 +586,8 @@ void modeOne(int o)
                         tft.setTextColor(TC);
                         tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
                         tft.setCursor(20 + 55, 182 + i * 20);
-                        w = hrStatus["hourly"][i]["text"];
                         String w = "";
+                        w = hrStatus["hourly"][i]["text"];
                         if (w.length() > 12)
                         {
                             w = w.substring(0, 12) + "...";
