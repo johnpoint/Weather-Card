@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "0.8.2 OTA"
+#define VERSION "0.8.3 OTA"
 
 #define NTPADDRESS "ntp5.aliyun.com"
 #define TIMEZONE 8
@@ -282,7 +282,13 @@ void modeOne(int o)
                 {
                     tft.setFreeFont(FF36);
                     tft.fillRect(18, 83, 220, 60, BG);
+                    String wt = "";
+                    wt = nowStatus["now"]["text"];
                     mainw = nowStatus["now"]["text"];
+                    if (mainw.length() > 8)
+                    {
+                        mainw = mainw.substring(0, 8) + "...";
+                    }
                     tft.setCursor(20, 120);
                     tft.setTextColor(TC);
                     tft.print(mainw);
@@ -301,7 +307,7 @@ void modeOne(int o)
                         tft.print(mainw);
                         i++;
                     }
-                    changeIcon(mainw);
+                    changeIcon(wt);
                 }
                 a = nowStatus["now"]["temp"];
                 b = nowStatus["now"]["humidity"];
@@ -580,7 +586,13 @@ void modeOne(int o)
                         tft.setTextColor(TC);
                         tft.print((const char *)hrStatus["hourly"][i]["fxTime"]);
                         tft.setCursor(20 + 55, 182 + i * 20);
-                        tft.print((const char *)hrStatus["hourly"][i]["text"]);
+                        w = hrStatus["hourly"][i]["text"];
+                        String w = "";
+                        if (w.length() > 12)
+                        {
+                            w = w.substring(0, 12) + "...";
+                        }
+                        tft.print(w);
                         tft.setCursor(20 + 210, 182 + i * 20);
                         tft.print((const char *)hrStatus["hourly"][i]["temp"]);
                     }
@@ -605,9 +617,16 @@ void modeOne(int o)
                     {
                         tft.setCursor(20, 182 + i * 20);
                         tft.setTextColor(TC);
+                        mainw = "Thundershower";
                         tft.print((const char *)dayStatus["daily"][i]["fxDate"]);
                         tft.setCursor(20 + 55, 182 + i * 20);
-                        tft.print((const char *)dayStatus["daily"][i]["text"]);
+                        String w = "";
+                        w = dayStatus["daily"][i]["text"];
+                        if (w.length() > 12)
+                        {
+                            w = w.substring(0, 12) + "...";
+                        }
+                        tft.print(w);
                         tft.setCursor(20 + 180, 182 + i * 20);
                         tft.print((const char *)dayStatus["daily"][i]["temp"]);
                     }
@@ -1185,7 +1204,7 @@ void changeIcon(String newI)
         tft.drawLine(397, 111, 392, 131, TFT_YELLOW);
         tft.drawLine(398, 111, 393, 131, TFT_YELLOW);
         tft.drawLine(399, 111, 394, 131, TFT_YELLOW);
-        
+
         tft.drawLine(402, 111, 397, 131, rgb(30, 144, 255));
         tft.drawLine(403, 111, 398, 131, rgb(30, 144, 255));
         tft.drawLine(404, 111, 399, 131, rgb(30, 144, 255));
