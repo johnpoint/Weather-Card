@@ -26,7 +26,7 @@
 #define APPSK "12345678"
 #endif
 
-#define VERSION "0.8.3 OTA"
+#define VERSION "0.8.4 OTA"
 
 #define NTPADDRESS "ntp5.aliyun.com"
 #define TIMEZONE 8
@@ -588,9 +588,9 @@ void modeOne(int o)
                         tft.setCursor(20 + 55, 182 + i * 20);
                         String w = "";
                         w = hrStatus["hourly"][i]["text"];
-                        if (w.length() > 12)
+                        if (w.length() > 15)
                         {
-                            w = w.substring(0, 12) + "...";
+                            w = w.substring(0, 15) + "...";
                         }
                         tft.print(w);
                         tft.setCursor(20 + 210, 182 + i * 20);
