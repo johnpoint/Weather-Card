@@ -33,10 +33,10 @@ Power on the NodeMCU. After the firmware is burned for the first time, it will a
 
 ## 本体
 
-![](https://cdn.lvcshu.info/img/20201202002.jpg)
-![](https://cdn.lvcshu.info/img/20201202003.jpg)
+![](https://cdn.6-d.cc/img/20201202002.jpg)
+![](https://cdn.6-d.cc/img/20201202003.jpg)
 
 ## WEB 管理界面
 
-![](https://cdn.lvcshu.info/img/20201202005.jpg)
-![](https://cdn.lvcshu.info/img/20201202004.jpg)
+![](https://cdn.6-d.cc/img/20201202005.jpg)
+![](https://cdn.6-d.cc/img/20201202004.jpg)
